@@ -126,33 +126,19 @@
 </footer>
 
 <script>
+  // Configuración
   const SUPABASE_URL = "https://nccggkkxezbrydeyzyko.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_1uOhbiY9pDQ4k4q0Lz7wpg_7c6ykx7p";
-
+  
   let supabase, products = [], isAdmin = false, currentEditingId = null, currentFilter = "todos";
 
-  // Detectar modo admin (por parámetro URL o por sesión de Supabase)
-  async function checkAdminMode() {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('admin') === 'true') {
-      isAdmin = true;
-      window.history.replaceState({}, document.title, window.location.pathname);
-      return;
-    }
-    
-    // Verificar si hay sesión activa en Supabase
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      const { data: perfil } = await supabase
-        .from('perfiles')
-        .select('rol')
-        .eq('id', session.user.id)
-        .single();
-      
-      if (perfil?.rol === 'gerente') {
-        isAdmin = true;
-      }
-    }
+  // Detectar modo admin (por parámetro URL)
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('admin') === 'true') {
+    isAdmin = true;
+    console.log("✅ Modo admin activado por URL");
+    // Limpiar URL
+    window.history.replaceState({}, document.title, window.location.pathname);
   }
 
   const ejemplos = [
@@ -170,6 +156,7 @@
     const { count } = await supabase.from('productos').select('*', { count: 'exact', head: true });
     if (count === 0) {
       for (let ex of ejemplos) await supabase.from('productos').insert([{ ...ex, activo: true }]);
+      console.log("📦 Ejemplos insertados");
     }
   }
 
@@ -177,6 +164,7 @@
     const { data } = await supabase.from('productos').select('*').order('id', { ascending: false });
     products = data || [];
     renderFeed();
+    console.log(`📦 ${products.length} productos cargados`);
   }
 
   async function deleteProduct(id) {
@@ -292,15 +280,17 @@
     if (isAdmin) {
       authDiv.innerHTML = `<div style="display:flex; gap:8px;"><span style="background:#d47b3a; padding:5px 15px; border-radius:40px; color:white; font-weight:600;">🌸 Tati</span><button class="icon-soft" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div>`;
       fab.style.display = "flex";
+      console.log("👑 UI en modo admin");
     } else {
-      authDiv.innerHTML = `<a href="/admin.html" class="icon-soft"><i class="fas fa-user-circle"></i></a>`;
+      authDiv.innerHTML = `<a href="admin.html" class="icon-soft"><i class="fas fa-user-circle"></i></a>`;
       fab.style.display = "none";
+      console.log("👤 UI en modo cliente");
     }
   }
 
   async function init() {
     supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    await checkAdminMode();
+    console.log("🚀 Iniciando app...");
     await seedEjemplos();
     await loadProducts();
     renderStories();
