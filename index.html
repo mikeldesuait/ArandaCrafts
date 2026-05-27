@@ -37,7 +37,8 @@
     .feed-container { max-width: 550px; margin: 0 auto; padding: 16px; }
     .product-card { background: white; border-radius: 32px; margin-bottom: 24px; overflow: hidden; box-shadow: 0 6px 18px rgba(0,0,0,0.03); border: 1px solid #ffe1c4; transition: all 0.2s; }
     .product-card.editable { border: 2px solid #d47b3a; cursor: pointer; }
-    .card-img { width: 100%; aspect-ratio: 1/1; background: #fff8f0; display: flex; align-items: center; justify-content: center; }
+    .card-img { width: 100%; aspect-ratio: 1/1; background: #fff8f0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    .card-img img { width: 100%; height: 100%; object-fit: cover; }
     .card-img i { font-size: 3.5rem; color: #dc9a6e; }
     .card-info { padding: 18px; }
     .product-name { font-weight: 700; font-size: 1.1rem; }
@@ -49,9 +50,12 @@
     .fab-create:hover { transform: scale(1.05); background: #b95f2a; }
 
     .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); justify-content: center; align-items: center; z-index: 200; padding: 20px; }
-    .modal-card { background: white; border-radius: 36px; max-width: 450px; width: 100%; padding: 28px; border: 1px solid #ffe1c4; }
+    .modal-card { background: white; border-radius: 36px; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 28px; border: 1px solid #ffe1c4; }
     .modal-card h3 { margin-bottom: 20px; color: #b95f2a; }
-    .modal-card input, .modal-card select { width: 100%; padding: 14px; margin-bottom: 16px; border-radius: 30px; border: 1px solid #ffe1c4; background: #fefaf5; font-family: 'Quicksand', sans-serif; }
+    .modal-card input, .modal-card select, .modal-card textarea { width: 100%; padding: 14px; margin-bottom: 16px; border-radius: 30px; border: 1px solid #ffe1c4; background: #fefaf5; font-family: 'Quicksand', sans-serif; }
+    .img-preview { width: 100%; aspect-ratio: 1/1; background: #f5efe8; border-radius: 20px; margin-bottom: 16px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    .img-preview img { width: 100%; height: 100%; object-fit: cover; }
+    .img-preview i { font-size: 2rem; color: #c16e3a; }
     .btn-primary { background: #d47b3a; color: white; border: none; padding: 12px 24px; border-radius: 40px; font-weight: 600; cursor: pointer; }
     .btn-secondary { background: #efe3d8; color: #5e3e26; border: none; padding: 12px 24px; border-radius: 40px; cursor: pointer; }
     footer { text-align: center; padding: 30px; color: #cbad93; font-size: 0.7rem; border-top: 1px solid #ffe1c4; }
@@ -82,13 +86,17 @@
 
 <button id="fabCreateBtn" class="fab-create" style="display: none;">+</button>
 
-<!-- MODALES -->
+<!-- MODAL EDITAR -->
 <div id="editModal" class="modal-overlay">
   <div class="modal-card">
     <h3>✏️ Editar pieza</h3>
+    <div class="img-preview" id="editImagePreview">
+      <i class="fas fa-image"></i>
+    </div>
+    <input type="file" id="editImageFile" accept="image/*">
     <input type="text" id="editName" placeholder="Nombre del producto">
     <input type="text" id="editPrice" placeholder="Precio (€)">
-    <input type="text" id="editIcon" placeholder="Icono (fa-tshirt, fa-mug-hot, fa-key, fa-crown)">
+    <input type="text" id="editIcon" placeholder="Icono (fallback si no hay imagen)">
     <select id="editCategory">
       <option value="textil">👕 Camisetas y ropa</option>
       <option value="sublimacion">☕ Tazas / Botellas / Copas</option>
@@ -102,16 +110,21 @@
   </div>
 </div>
 
+<!-- MODAL AÑADIR -->
 <div id="addModal" class="modal-overlay">
   <div class="modal-card">
     <h3>➕ Nueva creación</h3>
+    <div class="img-preview" id="addImagePreview">
+      <i class="fas fa-image"></i>
+    </div>
+    <input type="file" id="addImageFile" accept="image/*">
     <input type="text" id="addName" placeholder="Nombre del producto">
     <input type="text" id="addPrice" placeholder="Precio (€)">
-    <input type="text" id="addIcon" placeholder="Icono (ej: fa-tshirt)" value="fa-heart">
+    <input type="text" id="addIcon" placeholder="Icono (fallback)" value="fa-heart">
     <select id="addCategory">
       <option value="textil">👕 Camisetas y ropa</option>
       <option value="sublimacion">☕ Tazas / Botellas / Copas</option>
-      <option value="artesania">🔑 Llaveros / Marcadores</option>
+      <option value="artesania">🔑 Llaveros / Marcapáginas</option>
       <option value="laser">⚡ Grabado láser Xtool</option>
     </select>
     <div style="display:flex; gap:12px; justify-content:flex-end;">
@@ -135,6 +148,7 @@
   let supabaseClient = null;
   let products = [];
   let currentEditingId = null;
+  let currentEditingImageFile = null;
   let currentFilter = "todos";
   
   // 🔥 FORZAR MODO ADMIN SI VIENE DE admin.html
@@ -143,10 +157,8 @@
   
   console.log("🔍 Modo admin detectado:", IS_ADMIN_MODE);
   
-  // Variables globales para el modo admin
   window.isAdmin = IS_ADMIN_MODE;
   
-  // Si es admin, limpiar URL para que no se vea feo
   if (IS_ADMIN_MODE) {
     window.history.replaceState({}, document.title, window.location.pathname);
   }
@@ -164,6 +176,19 @@
     { nombre_es: "Sudadera oversize 'Esencia'", precio: 32.0, icono: "fa-tshirt", categoria: "textil" },
     { nombre_es: "Pack 2 tazas 'Amistad'", precio: 26.90, icono: "fa-mug-hot", categoria: "sublimacion" }
   ];
+
+  // ==========================================
+  //  SUBIR IMAGEN A SUPABASE STORAGE
+  // ==========================================
+  async function uploadImage(file, productId) {
+    if (!file) return null;
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${productId}_${Date.now()}.${fileExt}`;
+    const { error } = await supabaseClient.storage.from('productos').upload(fileName, file);
+    if (error) throw error;
+    const { data } = supabaseClient.storage.from('productos').getPublicUrl(fileName);
+    return data.publicUrl;
+  }
 
   // ==========================================
   //  SUPABASE CRUD
@@ -196,8 +221,8 @@
   }
 
   async function addProduct(data) {
-    await supabaseClient.from('productos').insert([{ ...data, activo: true }]);
-    loadProducts();
+    const { data: newProduct } = await supabaseClient.from('productos').insert([{ ...data, activo: true }]).select();
+    return newProduct[0];
   }
 
   // ==========================================
@@ -237,9 +262,11 @@
       card.className = "product-card" + (window.isAdmin ? " editable" : "");
       if (window.isAdmin) card.onclick = () => openEdit(p);
       const iconMap = { textil: 'fa-tshirt', sublimacion: 'fa-mug-hot', artesania: 'fa-key', laser: 'fa-crown' };
-      const icono = p.icono || iconMap[p.categoria] || 'fa-star';
+      const fallbackIcon = p.icono || iconMap[p.categoria] || 'fa-star';
       card.innerHTML = `
-        <div class="card-img"><i class="fas ${icono}"></i></div>
+        <div class="card-img">
+          ${p.imagen_url ? `<img src="${p.imagen_url}" alt="${escapeHtml(p.nombre_es)}">` : `<i class="fas ${fallbackIcon}"></i>`}
+        </div>
         <div class="card-info">
           <div class="product-name">${escapeHtml(p.nombre_es || 'Creación artesanal')}</div>
           <div class="product-price">${p.precio} €</div>
@@ -255,7 +282,7 @@
   function escapeHtml(str) { if (!str) return ""; return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
 
   // ==========================================
-  //  MODALES
+  //  MODALES CON IMAGEN
   // ==========================================
   function openEdit(prod) {
     currentEditingId = prod.id;
@@ -263,31 +290,96 @@
     document.getElementById("editPrice").value = prod.precio;
     document.getElementById("editIcon").value = prod.icono || "";
     document.getElementById("editCategory").value = prod.categoria || "";
+    
+    const previewDiv = document.getElementById("editImagePreview");
+    if (prod.imagen_url) {
+      previewDiv.innerHTML = `<img src="${prod.imagen_url}" alt="Vista previa">`;
+    } else {
+      previewDiv.innerHTML = `<i class="fas fa-image"></i>`;
+    }
+    document.getElementById("editImageFile").value = "";
+    currentEditingImageFile = null;
     document.getElementById("editModal").style.display = "flex";
   }
 
+  document.getElementById("editImageFile").addEventListener("change", (e) => {
+    if (e.target.files && e.target.files[0]) {
+      currentEditingImageFile = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        document.getElementById("editImagePreview").innerHTML = `<img src="${ev.target.result}" alt="Vista previa">`;
+      };
+      reader.readAsDataURL(currentEditingImageFile);
+    }
+  });
+
   window.saveCurrentProduct = async function() {
+    const name = document.getElementById("editName").value.trim();
+    const price = parseFloat(document.getElementById("editPrice").value);
+    const icon = document.getElementById("editIcon").value.trim();
+    const category = document.getElementById("editCategory").value;
+    
+    if (!name || isNaN(price)) { alert("Completa nombre y precio"); return; }
+    
+    let imagenUrl = null;
+    if (currentEditingImageFile) {
+      imagenUrl = await uploadImage(currentEditingImageFile, currentEditingId);
+    }
+    
     await updateProduct(currentEditingId, {
-      nombre_es: document.getElementById("editName").value,
-      precio: parseFloat(document.getElementById("editPrice").value),
-      icono: document.getElementById("editIcon").value,
-      categoria: document.getElementById("editCategory").value
+      nombre_es: name,
+      precio: price,
+      icono: icon,
+      categoria: category,
+      imagen_url: imagenUrl
     });
     closeModal();
   };
 
-  window.closeModal = function() { document.getElementById("editModal").style.display = "none"; };
+  window.closeModal = function() { 
+    document.getElementById("editModal").style.display = "none"; 
+    currentEditingImageFile = null;
+  };
+
+  // Añadir producto con imagen
+  window.openAddModal = function() { 
+    document.getElementById("addModal").style.display = "flex"; 
+  };
   
-  window.openAddModal = function() { document.getElementById("addModal").style.display = "flex"; };
-  window.closeAddModal = function() { document.getElementById("addModal").style.display = "none"; };
+  window.closeAddModal = function() { 
+    document.getElementById("addModal").style.display = "none";
+    document.getElementById("addImageFile").value = "";
+    document.getElementById("addImagePreview").innerHTML = `<i class="fas fa-image"></i>`;
+  };
+
+  document.getElementById("addImageFile").addEventListener("change", (e) => {
+    if (e.target.files && e.target.files[0]) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        document.getElementById("addImagePreview").innerHTML = `<img src="${ev.target.result}" alt="Vista previa">`;
+      };
+      reader.readAsDataURL(e.target.files[0]);
+    }
+  });
 
   window.createNewProduct = async function() {
-    await addProduct({
-      nombre_es: document.getElementById("addName").value,
-      precio: parseFloat(document.getElementById("addPrice").value),
-      icono: document.getElementById("addIcon").value,
-      categoria: document.getElementById("addCategory").value
-    });
+    const name = document.getElementById("addName").value.trim();
+    const price = parseFloat(document.getElementById("addPrice").value);
+    const icon = document.getElementById("addIcon").value.trim() || "fa-heart";
+    const category = document.getElementById("addCategory").value;
+    const imageFile = document.getElementById("addImageFile").files[0];
+    
+    if (!name || isNaN(price)) { alert("Completa nombre y precio"); return; }
+    
+    // Crear producto sin imagen primero
+    const newProduct = await addProduct({ nombre_es: name, precio: price, icono: icon, categoria: category });
+    
+    // Si hay imagen, subirla y actualizar
+    if (imageFile && newProduct) {
+      const imagenUrl = await uploadImage(imageFile, newProduct.id);
+      await updateProduct(newProduct.id, { imagen_url: imagenUrl });
+    }
+    
     closeAddModal();
     document.getElementById("addName").value = "";
     document.getElementById("addPrice").value = "";
@@ -330,7 +422,6 @@
     renderStories();
     await updateUI();
     
-    // Asignar evento al botón flotante
     document.getElementById("fabCreateBtn").onclick = () => openAddModal();
   }
 
