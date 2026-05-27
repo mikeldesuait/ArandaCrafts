@@ -2,347 +2,176 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
-  <title>Aranda Crafts | </title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Acceso gerente | Aranda Crafts</title>
   <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Quicksand', sans-serif; background: #fef9f2; color: #2d2a24; scroll-behavior: smooth; }
-
-    .soft-header {
-      position: sticky; top: 0; background: rgba(255, 250, 240, 0.96); backdrop-filter: blur(12px);
-      padding: 16px 20px; display: flex; flex-direction: column; align-items: center;
-      border-bottom: 1px solid #ffe1c4; z-index: 100;
+    body {
+      font-family: 'Quicksand', sans-serif;
+      background: linear-gradient(145deg, #fef9f2 0%, #ffede1 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
     }
-    .logo-area h1 { font-size: 2rem; font-weight: 800; background: linear-gradient(135deg, #d47b3a, #b95f2a); -webkit-background-clip: text; background-clip: text; color: transparent; }
-    .logo-area p { font-size: 0.7rem; color: #b78f6e; letter-spacing: 1.5px; }
-    .header-actions { display: flex; gap: 12px; justify-content: center; margin-top: 6px; }
-    .icon-soft { width: 42px; height: 42px; background: #fff1e6; border-radius: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: none; color: #c16e3a; font-size: 1.2rem; transition: all 0.2s; }
-    .icon-soft:hover { background: #c16e3a; color: white; }
-
-    .hero-gentle { padding: 40px 20px; text-align: center; background: linear-gradient(145deg, #fff5eb 0%, #ffede1 100%); }
-    .hero-gentle h2 { font-size: 1.8rem; font-weight: 700; color: #3b2c21; }
-    .hero-gentle span { color: #d47b3a; }
-    .hero-gentle p { margin-top: 12px; max-width: 320px; margin-left: auto; margin-right: auto; color: #8f735b; }
-
-    .stories-scroll { overflow-x: auto; white-space: nowrap; padding: 20px 16px; scrollbar-width: thin; }
-    .stories-track { display: inline-flex; gap: 20px; }
-    .story-circle { display: inline-flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; }
-    .ring { width: 72px; height: 72px; background: #ffe1c4; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
-    .ring i { font-size: 2rem; color: #c16e3a; }
-    .story-label { font-size: 0.7rem; font-weight: 600; color: #6b4c30; }
-
-    .feed-container { max-width: 550px; margin: 0 auto; padding: 16px; }
-    .product-card { background: white; border-radius: 32px; margin-bottom: 24px; overflow: hidden; box-shadow: 0 6px 18px rgba(0,0,0,0.03); border: 1px solid #ffe1c4; transition: all 0.2s; }
-    .product-card.editable { border: 2px solid #d47b3a; cursor: pointer; }
-    .card-img { width: 100%; aspect-ratio: 1/1; background: #fff8f0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-    .card-img img { width: 100%; height: 100%; object-fit: cover; }
-    .card-img i { font-size: 3.5rem; color: #dc9a6e; }
-    .card-info { padding: 18px; }
-    .product-name { font-weight: 700; font-size: 1.1rem; }
-    .product-price { color: #c16e3a; font-weight: 800; margin: 8px 0; }
-    .badge-craft { background: #fff1e6; color: #c16e3a; display: inline-block; padding: 4px 12px; border-radius: 40px; font-size: 0.7rem; margin: 8px 0; }
-    .btn-personalizar { background: #d47b3a; color: white; border: none; width: 100%; padding: 12px; border-radius: 40px; font-weight: 700; font-family: 'Quicksand', sans-serif; margin-top: 12px; cursor: pointer; }
-
-    .fab-create { position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; background: #d47b3a; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.6rem; box-shadow: 0 6px 14px rgba(0,0,0,0.1); cursor: pointer; border: none; z-index: 90; transition: all 0.2s; }
-    .fab-create:hover { transform: scale(1.05); background: #b95f2a; }
-
-    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); justify-content: center; align-items: center; z-index: 200; padding: 20px; }
-    .modal-card { background: white; border-radius: 36px; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 28px; border: 1px solid #ffe1c4; }
-    .modal-card h3 { margin-bottom: 20px; color: #b95f2a; }
-    .modal-card input, .modal-card select { width: 100%; padding: 14px; margin-bottom: 16px; border-radius: 30px; border: 1px solid #ffe1c4; background: #fefaf5; font-family: 'Quicksand', sans-serif; }
-    .img-preview { width: 100%; aspect-ratio: 1/1; background: #f5efe8; border-radius: 20px; margin-bottom: 16px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-    .img-preview img { width: 100%; height: 100%; object-fit: cover; }
-    .img-preview i { font-size: 2rem; color: #c16e3a; }
-    .btn-primary { background: #d47b3a; color: white; border: none; padding: 12px 24px; border-radius: 40px; font-weight: 600; cursor: pointer; }
-    .btn-secondary { background: #efe3d8; color: #5e3e26; border: none; padding: 12px 24px; border-radius: 40px; cursor: pointer; }
-    footer { text-align: center; padding: 30px; color: #cbad93; font-size: 0.7rem; border-top: 1px solid #ffe1c4; }
+    .login-card {
+      background: white;
+      border-radius: 48px;
+      padding: 40px 32px;
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.05);
+      border: 1px solid #ffe1c4;
+    }
+    .login-card h1 {
+      font-size: 2rem;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #d47b3a, #b95f2a);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .login-card p {
+      color: #b78f6e;
+      margin-bottom: 32px;
+      font-size: 0.9rem;
+    }
+    .login-card input {
+      width: 100%;
+      padding: 16px;
+      margin-bottom: 16px;
+      border-radius: 60px;
+      border: 1px solid #ffe1c4;
+      background: #fefaf5;
+      font-family: 'Quicksand', sans-serif;
+      font-size: 1rem;
+    }
+    .login-card button {
+      width: 100%;
+      background: #d47b3a;
+      color: white;
+      border: none;
+      padding: 16px;
+      border-radius: 60px;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .login-card button:hover { background: #b95f2a; transform: scale(1.02); }
+    .login-card button:disabled { background: #cbad93; cursor: not-allowed; }
+    .error { color: #c16e3a; margin-top: 16px; font-size: 0.8rem; }
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      color: #b78f6e;
+      text-decoration: none;
+      font-size: 0.8rem;
+    }
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 0.8s linear infinite;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
-
-<div class="soft-header">
-  <div class="logo-area">
-    <h1>Aranda Crafts</h1>
-    <p>arte personalizado con alma</p>
-  </div>
-  <div class="header-actions" id="authButtons"></div>
+<div class="login-card">
+  <h1>🌸 Aranda Crafts</h1>
+  <p>acceso para el equipo</p>
+  <input type="email" id="email" placeholder="Email" value="aranda.crafts@gmail.com">
+  <input type="password" id="password" placeholder="Contraseña">
+  <button id="loginBtn">Entrar al panel</button>
+  <div id="errorMsg" class="error"></div>
+  <a href="./" class="back-link">← Volver a la tienda</a>
 </div>
-
-<div class="hero-gentle">
-  <h2>Tu idea, <span>hecha pieza única</span></h2>
-  <p>Vinilo · Sublimación · DTF · Láser Xtool · Artesanía menuda</p>
-</div>
-
-<div class="stories-scroll">
-  <div class="stories-track" id="storiesTrack"></div>
-</div>
-
-<div class="feed-container" id="feedContainer">
-  <div style="text-align:center; padding:40px;">🌸 Cargando creaciones...</div>
-</div>
-
-<button id="fabCreateBtn" class="fab-create" style="display: none;">+</button>
-
-<!-- MODALES -->
-<div id="editModal" class="modal-overlay">
-  <div class="modal-card">
-    <h3>✏️ Editar pieza</h3>
-    <div class="img-preview" id="editImagePreview"><i class="fas fa-image"></i></div>
-    <input type="file" id="editImageFile" accept="image/*">
-    <input type="text" id="editName" placeholder="Nombre del producto">
-    <input type="text" id="editPrice" placeholder="Precio (€)">
-    <input type="text" id="editIcon" placeholder="Icono (fa-tshirt, fa-mug-hot, fa-key, fa-crown)">
-    <div style="display:flex; gap:12px; justify-content:flex-end; margin-top:8px;">
-      <button class="btn-secondary" onclick="closeModal()">Cancelar</button>
-      <button class="btn-primary" onclick="saveCurrentProduct()">Guardar</button>
-    </div>
-  </div>
-</div>
-
-<div id="addModal" class="modal-overlay">
-  <div class="modal-card">
-    <h3>➕ Nueva creación</h3>
-    <div class="img-preview" id="addImagePreview"><i class="fas fa-image"></i></div>
-    <input type="file" id="addImageFile" accept="image/*">
-    <input type="text" id="addName" placeholder="Nombre del producto">
-    <input type="text" id="addPrice" placeholder="Precio (€)">
-    <input type="text" id="addIcon" placeholder="Icono (fa-tshirt, fa-mug-hot...)" value="fa-heart">
-    <div style="display:flex; gap:12px; justify-content:flex-end;">
-      <button class="btn-secondary" onclick="closeAddModal()">Cancelar</button>
-      <button class="btn-primary" onclick="createNewProduct()">Crear producto</button>
-    </div>
-  </div>
-</div>
-
-<footer>
-  <p>💛 Hecho con dedicación · Cada pieza cuenta una historia</p>
-</footer>
 
 <script>
   const SUPABASE_URL = "https://nccggkkxezbrydeyzyko.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_1uOhbiY9pDQ4k4q0Lz7wpg_7c6ykx7p";
   
-  let supabase, products = [], isAdmin = false, currentEditingId = null, currentEditingImageFile = null, currentFilter = "todos";
-
-  // Detectar modo admin
-  const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get('admin') === 'true') {
-    isAdmin = true;
-    window.history.replaceState({}, document.title, window.location.pathname);
-  }
-
-  const ejemplos = [
-    { nombre_es: "Camiseta 'Arte Flow'", precio: 22.90, icono: "fa-tshirt" },
-    { nombre_es: "Taza 'Brillo Creativo'", precio: 14.50, icono: "fa-mug-hot" },
-    { nombre_es: "Botella térmica personalizada", precio: 19.90, icono: "fa-water-bottle" },
-    { nombre_es: "Llavero acrílico con nombre", precio: 6.90, icono: "fa-key" },
-    { nombre_es: "Marcapáginas grabado láser", precio: 5.90, icono: "fa-bookmark" },
-    { nombre_es: "Grabado láser en madera (15cm)", precio: 18.0, icono: "fa-crown" },
-    { nombre_es: "Sudadera oversize 'Esencia'", precio: 32.0, icono: "fa-tshirt" },
-    { nombre_es: "Pack 2 tazas 'Amistad'", precio: 26.90, icono: "fa-mug-hot" }
-  ];
-
-  async function seedEjemplos() {
-    const { count } = await supabase.from('productos').select('*', { count: 'exact', head: true });
-    if (count === 0) {
-      for (let ex of ejemplos) await supabase.from('productos').insert([{ ...ex, activo: true }]);
-      console.log("📦 Ejemplos insertados");
+  let supabaseClient = null;
+  
+  async function init() {
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    // Verificar si ya hay sesión activa
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session) {
+      const { data: perfil } = await supabaseClient
+        .from('perfiles')
+        .select('rol')
+        .eq('id', session.user.id)
+        .single();
+      
+      if (perfil?.rol === 'gerente') {
+        window.location.href = "./?admin=true";
+        return;
+      }
     }
+    
+    document.getElementById("loginBtn").addEventListener("click", login);
   }
-
-  async function loadProducts() {
-    const { data } = await supabase.from('productos').select('*').order('id', { ascending: false });
-    products = data || [];
-    renderFeed();
-  }
-
-  async function deleteProduct(id) {
-    if (confirm("¿Eliminar esta creación?")) {
-      await supabase.from('productos').delete().eq('id', id);
-      loadProducts();
-    }
-  }
-
-  async function updateProduct(id, updates) {
-    const { error } = await supabase.from('productos').update(updates).eq('id', id);
-    if (error) throw error;
-  }
-
-  async function addProduct(data) {
-    const { data: newProduct, error } = await supabase.from('productos').insert([{ ...data, activo: true }]).select();
-    if (error) throw error;
-    return newProduct[0];
-  }
-
-  async function uploadImage(file, productId) {
-    if (!file) return null;
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${productId}_${Date.now()}.${fileExt}`;
-    const { error } = await supabase.storage.from('productos').upload(fileName, file);
-    if (error) throw error;
-    const { data } = supabase.storage.from('productos').getPublicUrl(fileName);
-    return data.publicUrl;
-  }
-
-  function renderStories() {
-    const cats = [
-      { id: 'todos', name: 'Todo', icon: 'fa-heart' },
-      { id: 'textil', name: 'Camisetas', icon: 'fa-tshirt' },
-      { id: 'sublimacion', name: 'Tazas/Botellas', icon: 'fa-mug-hot' },
-      { id: 'artesania', name: 'Llaveros', icon: 'fa-key' },
-      { id: 'laser', name: 'Láser', icon: 'fa-crown' }
-    ];
-    document.getElementById("storiesTrack").innerHTML = cats.map(c => `
-      <div class="story-circle" onclick="filterByCategory('${c.id}')">
-        <div class="ring"><i class="fas ${c.icon}"></i></div>
-        <div class="story-label">${c.name}</div>
-      </div>
-    `).join('');
-  }
-
-  window.filterByCategory = function(cat) { currentFilter = cat; renderFeed(); };
-
-  function getProductCategory(product) {
-    const name = (product.nombre_es || "").toLowerCase();
-    if (name.includes('camiseta') || name.includes('sudadera')) return 'textil';
-    if (name.includes('taza') || name.includes('botella')) return 'sublimacion';
-    if (name.includes('llavero') || name.includes('marcapaginas')) return 'artesania';
-    if (name.includes('grabado') || name.includes('láser')) return 'laser';
-    return 'todos';
-  }
-
-  function renderFeed() {
-    const container = document.getElementById("feedContainer");
-    let filtered = currentFilter === "todos" ? products : products.filter(p => getProductCategory(p) === currentFilter);
-    if (!filtered.length) {
-      container.innerHTML = `<div style="text-align:center; padding:40px;">🌸 Aún no hay productos. ${isAdmin ? 'Toca el botón + para empezar' : 'Vuelve pronto'}</div>`;
+  
+  async function login() {
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+    const errorDiv = document.getElementById("errorMsg");
+    const loginBtn = document.getElementById("loginBtn");
+    
+    errorDiv.innerText = "";
+    
+    if (!email || !password) {
+      errorDiv.innerText = "❌ Completa ambos campos";
       return;
     }
-    container.innerHTML = "";
-    filtered.forEach(p => {
-      const card = document.createElement("div");
-      card.className = "product-card" + (isAdmin ? " editable" : "");
-      if (isAdmin) card.onclick = () => openEdit(p);
-      const displayName = p.nombre_es || "Creación artesanal";
-      const icono = p.icono || 'fa-star';
-      card.innerHTML = `
-        <div class="card-img">
-          ${p.imagen_url ? `<img src="${p.imagen_url}" alt="${escapeHtml(displayName)}">` : `<i class="fas ${icono}"></i>`}
-        </div>
-        <div class="card-info">
-          <div class="product-name">${escapeHtml(displayName)}</div>
-          <div class="product-price">${p.precio} €</div>
-          <div class="badge-craft"><i class="fas fa-hands"></i> hecho a mano</div>
-          <button class="btn-personalizar" onclick="event.stopPropagation(); alert('✨ Personalizar ${escapeHtml(displayName)} · ${p.precio}€\\n📧 Escríbenos para empezar')">Quiero personalizar ✨</button>
-          ${isAdmin ? `<button class="btn-personalizar" style="background:#c96f3a; margin-top:8px;" onclick="event.stopPropagation(); deleteProduct(${p.id})"><i class="fas fa-trash-alt"></i> Eliminar</button>` : ''}
-        </div>
-      `;
-      container.appendChild(card);
-    });
-  }
-
-  function escapeHtml(str) { if (!str) return ""; return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
-
-  function openEdit(prod) {
-    currentEditingId = prod.id;
-    document.getElementById("editName").value = prod.nombre_es || "";
-    document.getElementById("editPrice").value = prod.precio;
-    document.getElementById("editIcon").value = prod.icono || "";
-    const previewDiv = document.getElementById("editImagePreview");
-    previewDiv.innerHTML = prod.imagen_url ? `<img src="${prod.imagen_url}">` : `<i class="fas fa-image"></i>`;
-    document.getElementById("editImageFile").value = "";
-    currentEditingImageFile = null;
-    document.getElementById("editModal").style.display = "flex";
-  }
-
-  document.getElementById("editImageFile").addEventListener("change", (e) => {
-    if (e.target.files && e.target.files[0]) {
-      currentEditingImageFile = e.target.files[0];
-      const reader = new FileReader();
-      reader.onload = (ev) => document.getElementById("editImagePreview").innerHTML = `<img src="${ev.target.result}">`;
-      reader.readAsDataURL(currentEditingImageFile);
-    }
-  });
-
-  window.saveCurrentProduct = async function() {
-    const name = document.getElementById("editName").value.trim();
-    const price = parseFloat(document.getElementById("editPrice").value);
-    const icon = document.getElementById("editIcon").value.trim();
-    if (!name || isNaN(price)) { alert("Completa nombre y precio"); return; }
+    
+    loginBtn.disabled = true;
+    loginBtn.innerHTML = '<span class="spinner"></span> Verificando...';
+    
     try {
-      let imagenUrl = null;
-      if (currentEditingImageFile) imagenUrl = await uploadImage(currentEditingImageFile, currentEditingId);
-      const updates = { nombre_es: name, precio: price, icono: icon };
-      if (imagenUrl) updates.imagen_url = imagenUrl;
-      await updateProduct(currentEditingId, updates);
-      alert("✅ Producto actualizado");
-      closeModal();
-      await loadProducts();
-    } catch (err) { alert("Error: " + err.message); }
-  };
-
-  window.closeModal = function() { document.getElementById("editModal").style.display = "none"; currentEditingImageFile = null; };
-  window.openAddModal = function() { document.getElementById("addModal").style.display = "flex"; };
-  window.closeAddModal = function() { document.getElementById("addModal").style.display = "none"; document.getElementById("addImageFile").value = ""; document.getElementById("addImagePreview").innerHTML = `<i class="fas fa-image"></i>`; };
-
-  document.getElementById("addImageFile").addEventListener("change", (e) => {
-    if (e.target.files && e.target.files[0]) {
-      const reader = new FileReader();
-      reader.onload = (ev) => document.getElementById("addImagePreview").innerHTML = `<img src="${ev.target.result}">`;
-      reader.readAsDataURL(e.target.files[0]);
-    }
-  });
-
-  window.createNewProduct = async function() {
-    const name = document.getElementById("addName").value.trim();
-    const price = parseFloat(document.getElementById("addPrice").value);
-    const icon = document.getElementById("addIcon").value.trim() || "fa-heart";
-    const imageFile = document.getElementById("addImageFile").files[0];
-    if (!name || isNaN(price)) { alert("Completa nombre y precio"); return; }
-    try {
-      const newProduct = await addProduct({ nombre_es: name, precio: price, icono: icon });
-      if (imageFile && newProduct) {
-        const imagenUrl = await uploadImage(imageFile, newProduct.id);
-        if (imagenUrl) await updateProduct(newProduct.id, { imagen_url: imagenUrl });
+      const { data, error } = await supabaseClient.auth.signInWithPassword({
+        email: email,
+        password: password
+      });
+      
+      if (error) throw error;
+      
+      const { data: perfil, error: perfilError } = await supabaseClient
+        .from('perfiles')
+        .select('rol')
+        .eq('id', data.user.id)
+        .single();
+      
+      if (perfilError) throw new Error("Error al verificar permisos");
+      
+      if (perfil?.rol !== 'gerente') {
+        await supabaseClient.auth.signOut();
+        throw new Error("No tienes permisos de administración");
       }
-      closeAddModal();
-      document.getElementById("addName").value = "";
-      document.getElementById("addPrice").value = "";
-      await loadProducts();
-      alert("✅ Producto creado");
-    } catch (err) { alert("Error: " + err.message); }
-  };
-
-  window.logout = async function() {
-    await supabase.auth.signOut();
-    window.location.href = window.location.pathname;
-  };
-
-  async function updateUI() {
-    const authDiv = document.getElementById("authButtons");
-    const fab = document.getElementById("fabCreateBtn");
-    if (isAdmin) {
-      authDiv.innerHTML = `<div style="display:flex; gap:8px;"><span style="background:#d47b3a; padding:5px 15px; border-radius:40px; color:white; font-weight:600;">🌸 Tati</span><button class="icon-soft" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div>`;
-      fab.style.display = "flex";
-    } else {
-      authDiv.innerHTML = `<a href="admin.html" class="icon-soft"><i class="fas fa-user-circle"></i></a>`;
-      fab.style.display = "none";
+      
+      // Redirigir a la tienda en modo admin
+      window.location.href = "./?admin=true";
+      
+    } catch (err) {
+      console.error(err);
+      errorDiv.innerText = "❌ " + (err.message || "Email o contraseña incorrectos");
+      loginBtn.disabled = false;
+      loginBtn.innerHTML = "Entrar al panel";
     }
   }
-
-  async function init() {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    await seedEjemplos();
-    await loadProducts();
-    renderStories();
-    await updateUI();
-    document.getElementById("fabCreateBtn").onclick = () => openAddModal();
-  }
-
-  window.onclick = (e) => { if (e.target.classList.contains('modal-overlay')) e.target.style.display = "none"; };
+  
   init();
 </script>
 </body>
