@@ -131,11 +131,11 @@
 
   let supabase, products = [], isAdmin = false, currentEditingId = null, currentFilter = "todos";
 
-  // Detectar si viene del admin (parámetro ?admin=true)
+  // 🔐 DETECTAR MODO ADMIN (por parámetro ?admin=true)
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('admin') === 'true') {
     isAdmin = true;
-    // Limpiar la URL para que no se vea fea
+    // Limpiar la URL para que quede bonita
     window.history.replaceState({}, document.title, window.location.pathname);
   }
 
