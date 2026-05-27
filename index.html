@@ -161,7 +161,7 @@
   }
 
   // ==========================================
-  //  EJEMPLOS
+  //  EJEMPLOS INICIALES
   // ==========================================
   const ejemplos = [
     { nombre_es: "Camiseta 'Arte Flow'", precio: 22.90, icono: "fa-tshirt", categoria: "textil" },
@@ -183,7 +183,7 @@
       return null;
     }
     
-    console.log("📤 Iniciando subida de imagen:", file.name, file.size, file.type);
+    console.log("📤 Subiendo imagen:", file.name, file.size, file.type);
     
     try {
       const fileExt = file.name.split('.').pop();
@@ -197,23 +197,22 @@
         });
       
       if (error) {
-        console.error("❌ Error de Supabase al subir:", error);
-        alert("Error de Supabase: " + error.message);
+        console.error("❌ Error al subir:", error);
+        alert("Error al subir imagen: " + error.message);
         return null;
       }
       
-      console.log("✅ Archivo subido correctamente:", data);
+      console.log("✅ Imagen subida:", data);
       
       const { data: urlData } = supabaseClient.storage
         .from('productos')
         .getPublicUrl(fileName);
       
-      console.log("📷 URL pública generada:", urlData.publicUrl);
+      console.log("📷 URL pública:", urlData.publicUrl);
       return urlData.publicUrl;
       
     } catch (err) {
-      console.error("❌ Excepción en uploadImage:", err);
-      alert("Error inesperado: " + err.message);
+      console.error("❌ Excepción:", err);
       return null;
     }
   }
@@ -224,7 +223,9 @@
   async function seedEjemplos() {
     const { count } = await supabaseClient.from('productos').select('*', { count: 'exact', head: true });
     if (count === 0) {
-      for (let ex of ejemplos) await supabaseClient.from('productos').insert([{ ...ex, activo: true }]);
+      for (let ex of ejemplos) {
+        await supabaseClient.from('productos').insert([{ ...ex, activo: true }]);
+      }
       console.log("📦 Ejemplos insertados");
     }
   }
@@ -244,22 +245,34 @@
   }
 
   async function updateProduct(id, updates) {
-    const { error } = await supabaseClient.from('productos').update(updates).eq('id', id);
-    if (error) console.error("Error al actualizar:", error);
-    loadProducts();
+    console.log("🔄 Actualizando producto:", id, updates);
+    const { error } = await supabaseClient
+      .from('productos')
+      .update(updates)
+      .eq('id', id);
+    
+    if (error) {
+      console.error("❌ Error en update:", error);
+      throw error;
+    }
+    console.log("✅ Producto actualizado");
   }
 
   async function addProduct(data) {
-    const { data: newProduct, error } = await supabaseClient.from('productos').insert([{ ...data, activo: true }]).select();
+    const { data: newProduct, error } = await supabaseClient
+      .from('productos')
+      .insert([{ ...data, activo: true }])
+      .select();
+    
     if (error) {
-      console.error("Error al crear producto:", error);
+      console.error("❌ Error al insertar:", error);
       throw error;
     }
     return newProduct[0];
   }
 
   // ==========================================
-  //  RENDERIZADO (igual que antes)
+  //  RENDERIZADO
   // ==========================================
   function renderStories() {
     const cats = [
@@ -277,7 +290,10 @@
     `).join('');
   }
 
-  window.filterByCategory = function(cat) { currentFilter = cat; renderFeed(); };
+  window.filterByCategory = function(cat) { 
+    currentFilter = cat; 
+    renderFeed(); 
+  };
 
   function renderFeed() {
     const container = document.getElementById("feedContainer");
@@ -312,7 +328,7 @@
   function escapeHtml(str) { if (!str) return ""; return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
 
   // ==========================================
-  //  MODALES CON IMAGEN (con logs)
+  //  MODALES
   // ==========================================
   function openEdit(prod) {
     currentEditingId = prod.id;
@@ -349,21 +365,35 @@
     const icon = document.getElementById("editIcon").value.trim();
     const category = document.getElementById("editCategory").value;
     
-    if (!name || isNaN(price)) { alert("Completa nombre y precio"); return; }
-    
-    let imagenUrl = null;
-    if (currentEditingImageFile) {
-      imagenUrl = await uploadImage(currentEditingImageFile, currentEditingId);
+    if (!name || isNaN(price)) { 
+      alert("Completa nombre y precio"); 
+      return; 
     }
     
-    await updateProduct(currentEditingId, {
-      nombre_es: name,
-      precio: price,
-      icono: icon,
-      categoria: category,
-      imagen_url: imagenUrl
-    });
-    closeModal();
+    try {
+      let imagenUrl = null;
+      if (currentEditingImageFile) {
+        imagenUrl = await uploadImage(currentEditingImageFile, currentEditingId);
+      }
+      
+      const updates = {
+        nombre_es: name,
+        precio: price,
+        icono: icon,
+        categoria: category
+      };
+      
+      if (imagenUrl) updates.imagen_url = imagenUrl;
+      
+      await updateProduct(currentEditingId, updates);
+      alert("✅ Producto actualizado");
+      closeModal();
+      await loadProducts();
+      
+    } catch (err) {
+      console.error("Error:", err);
+      alert("Error al guardar: " + err.message);
+    }
   };
 
   window.closeModal = function() { 
@@ -398,11 +428,13 @@
     const category = document.getElementById("addCategory").value;
     const imageFile = document.getElementById("addImageFile").files[0];
     
-    console.log("📝 Creando producto:", { name, price, icon, category, hasImage: !!imageFile });
-    
-    if (!name || isNaN(price)) { alert("Completa nombre y precio"); return; }
+    if (!name || isNaN(price)) { 
+      alert("Completa nombre y precio"); 
+      return; 
+    }
     
     try {
+      // Crear producto sin imagen primero
       const newProduct = await addProduct({ 
         nombre_es: name, 
         precio: price, 
@@ -412,12 +444,12 @@
       
       console.log("✅ Producto creado, ID:", newProduct.id);
       
+      // Si hay imagen, subirla y actualizar
       if (imageFile && newProduct) {
-        console.log("📸 Subiendo imagen...");
         const imagenUrl = await uploadImage(imageFile, newProduct.id);
         if (imagenUrl) {
           await updateProduct(newProduct.id, { imagen_url: imagenUrl });
-          console.log("✅ Imagen asignada al producto:", imagenUrl);
+          console.log("✅ Imagen asignada");
         }
       }
       
@@ -430,8 +462,8 @@
       alert("✅ Producto creado correctamente");
       
     } catch (err) {
-      console.error("❌ Error creando producto:", err);
-      alert("Error al crear producto: " + (err.message || "Desconocido"));
+      console.error("❌ Error:", err);
+      alert("Error al crear producto: " + err.message);
     }
   };
 
@@ -453,11 +485,11 @@
     if (window.isAdmin) {
       authDiv.innerHTML = `<div style="display:flex; gap:8px;"><span style="background:#d47b3a; padding:5px 15px; border-radius:40px; color:white; font-weight:600;">🌸 Tati</span><button class="icon-soft" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div>`;
       fab.style.display = "flex";
-      console.log("👑 UI en modo ADMIN");
+      console.log("👑 Modo ADMIN activado");
     } else {
       authDiv.innerHTML = `<a href="admin.html" class="icon-soft"><i class="fas fa-user-circle"></i></a>`;
       fab.style.display = "none";
-      console.log("👤 UI en modo cliente");
+      console.log("👤 Modo cliente");
     }
   }
 
