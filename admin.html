@@ -116,7 +116,7 @@
         .single();
       
       if (perfil?.rol === 'gerente') {
-        window.location.href = "/?admin=true";
+        window.location.href = window.location.pathname.replace("/admin.html", "") + "?admin=true";
       }
     }
   }
