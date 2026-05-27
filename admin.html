@@ -64,7 +64,6 @@
       transition: all 0.2s;
     }
     .login-card button:hover { background: #b95f2a; transform: scale(1.02); }
-    .login-card button:disabled { background: #cbad93; cursor: not-allowed; }
     .error { color: #c16e3a; margin-top: 16px; font-size: 0.8rem; }
     .back-link {
       display: inline-block;
@@ -73,107 +72,57 @@
       text-decoration: none;
       font-size: 0.8rem;
     }
-    .spinner {
-      display: inline-block;
-      width: 16px;
-      height: 16px;
-      border: 2px solid rgba(255,255,255,0.3);
-      border-radius: 50%;
-      border-top-color: white;
-      animation: spin 0.8s linear infinite;
-      margin-right: 8px;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
 <div class="login-card">
   <h1>🌸 Aranda Crafts</h1>
-  <p>acceso para el equipo</p>
-  <input type="email" id="email" placeholder="Email" autocomplete="email">
-  <input type="password" id="password" placeholder="Contraseña" autocomplete="current-password">
-  <button id="loginBtn">Entrar al panel</button>
+  <p>acceso para el equipo en prueba</p>
+  <input type="email" id="email" placeholder="Email">
+  <input type="password" id="password" placeholder="Contraseña">
+  <button onclick="login()">Entrar al panel</button>
   <div id="errorMsg" class="error"></div>
-  <div id="debugInfo" style="font-size:0.7rem; color:#888; margin-top:16px;"></div>
   <a href="./" class="back-link">← Volver a la tienda</a>
 </div>
 
 <script>
+  // Configuración
   const SUPABASE_URL = "https://nccggkkxezbrydeyzyko.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_1uOhbiY9pDQ4k4q0Lz7wpg_7c6ykx7p";
   
-  let supabase;
-
-  function logDebug(msg) {
-    console.log(msg);
-    const debugDiv = document.getElementById("debugInfo");
-    if (debugDiv) debugDiv.innerHTML += msg + "<br>";
-  }
-
-  async function initSupabase() {
-    logDebug("1. Iniciando Supabase...");
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    
-    logDebug("2. Verificando sesión existente...");
-    const { data: { session } } = await supabase.auth.getSession();
-    logDebug("3. Sesión: " + (session ? "activa" : "no activa"));
-    
-    if (session) {
-      logDebug("4. Obteniendo perfil del usuario...");
-      const { data: perfil, error } = await supabase
-        .from('perfiles')
-        .select('rol')
-        .eq('id', session.user.id)
-        .single();
-      
-      if (error) logDebug("4b. Error perfil: " + error.message);
-      logDebug("5. Rol: " + (perfil?.rol || "ninguno"));
-      
-      if (perfil?.rol === 'gerente') {
-        const basePath = window.location.pathname.replace("/admin.html", "");
-        const redirectUrl = basePath + "?admin=true";
-        logDebug("6. Redirigiendo a: " + redirectUrl);
-        window.location.href = redirectUrl;
-      } else {
-        logDebug("5b. No es gerente, sesión ignorada");
-      }
-    } else {
-      logDebug("No hay sesión activa, esperando login");
-    }
-  }
-
-  async function login() {
+  // Inicializar Supabase
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  
+  // Función de login GLOBAL (para que onclick la encuentre)
+  window.login = async function() {
     const email = document.getElementById("email").value.trim();
     const password = document.getElementById("password").value;
     const errorDiv = document.getElementById("errorMsg");
-    const loginBtn = document.getElementById("loginBtn");
     
     errorDiv.innerHTML = "";
-    logDebug("🔐 Intentando login con: " + email);
     
     if (!email || !password) {
       errorDiv.innerText = "❌ Completa ambos campos";
       return;
     }
     
-    loginBtn.disabled = true;
-    loginBtn.innerHTML = '<span class="spinner"></span> Verificando...';
-    
     try {
-      logDebug("7. Llamando a signInWithPassword...");
+      console.log("Intentando login con:", email);
+      
+      // Autenticar con Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email,
         password: password
       });
       
       if (error) {
-        logDebug("8. Error auth: " + error.message);
+        console.error("Error auth:", error);
         throw error;
       }
       
-      logDebug("9. Login exitoso, usuario ID: " + data.user.id);
+      console.log("Login exitoso, usuario:", data.user.id);
       
-      logDebug("10. Verificando rol en perfiles...");
+      // Verificar rol en tabla perfiles
       const { data: perfil, error: perfilError } = await supabase
         .from('perfiles')
         .select('rol')
@@ -181,37 +130,45 @@
         .single();
       
       if (perfilError) {
-        logDebug("11. Error perfil: " + perfilError.message);
+        console.error("Error perfil:", perfilError);
         throw new Error("Error al verificar permisos");
       }
       
-      logDebug("12. Rol obtenido: " + perfil?.rol);
+      console.log("Rol del usuario:", perfil?.rol);
       
       if (perfil?.rol !== 'gerente') {
-        logDebug("13. No es gerente, cerrando sesión...");
         await supabase.auth.signOut();
         throw new Error("No tienes permisos de administración");
       }
       
+      // Redirigir
       const basePath = window.location.pathname.replace("/admin.html", "");
       const redirectUrl = basePath + "?admin=true";
-      logDebug("14. Redirigiendo a: " + redirectUrl);
+      console.log("Redirigiendo a:", redirectUrl);
       window.location.href = redirectUrl;
       
     } catch (err) {
-      console.error("Error:", err);
+      console.error("Error final:", err);
       errorDiv.innerText = "❌ " + (err.message || "Email o contraseña incorrectos");
-      loginBtn.disabled = false;
-      loginBtn.innerHTML = "Entrar al panel";
     }
-  }
+  };
   
-  // Asignar evento cuando el DOM esté listo
-  document.addEventListener("DOMContentLoaded", () => {
-    logDebug("DOM cargado");
-    initSupabase();
-    document.getElementById("loginBtn").addEventListener("click", login);
-  });
+  // Verificar si ya hay sesión activa al cargar
+  (async function checkSession() {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      const { data: perfil } = await supabase
+        .from('perfiles')
+        .select('rol')
+        .eq('id', session.user.id)
+        .single();
+      
+      if (perfil?.rol === 'gerente') {
+        const basePath = window.location.pathname.replace("/admin.html", "");
+        window.location.href = basePath + "?admin=true";
+      }
+    }
+  })();
 </script>
 </body>
 </html>
