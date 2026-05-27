@@ -98,113 +98,352 @@
 </div>
 
 <script>
-  (function() {
-    // Configuración
-    const SUPABASE_URL = "https://nccggkkxezbrydeyzyko.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_1uOhbiY9pDQ4k4q0Lz7wpg_7c6ykx7p";
+  // ==========================================
+  //  CONFIGURACIÓN
+  // ==========================================
+  const SUPABASE_URL = "https://nccggkkxezbrydeyzyko.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_1uOhbiY9pDQ4k4q0Lz7wpg_7c6ykx7p";
+  
+  let supabaseClient = null;
+  let products = [];
+  let currentEditingId = null;
+  let currentEditingImageFile = null;
+  let currentFilter = "todos";
+  
+  // Modo admin
+  const urlParams = new URLSearchParams(window.location.search);
+  const IS_ADMIN_MODE = (urlParams.get('admin') === 'true');
+  window.isAdmin = IS_ADMIN_MODE;
+  
+  if (IS_ADMIN_MODE) {
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
+
+  // ==========================================
+  //  EJEMPLOS INICIALES (sin columna categoria)
+  // ==========================================
+  const ejemplos = [
+    { nombre_es: "Camiseta 'Arte Flow'", precio: 22.90, icono: "fa-tshirt" },
+    { nombre_es: "Taza 'Brillo Creativo'", precio: 14.50, icono: "fa-mug-hot" },
+    { nombre_es: "Botella térmica personalizada", precio: 19.90, icono: "fa-water-bottle" },
+    { nombre_es: "Llavero acrílico con nombre", precio: 6.90, icono: "fa-key" },
+    { nombre_es: "Marcapáginas grabado láser", precio: 5.90, icono: "fa-bookmark" },
+    { nombre_es: "Grabado láser en madera (15cm)", precio: 18.0, icono: "fa-crown" },
+    { nombre_es: "Sudadera oversize 'Esencia'", precio: 32.0, icono: "fa-tshirt" },
+    { nombre_es: "Pack 2 tazas 'Amistad'", precio: 26.90, icono: "fa-mug-hot" }
+  ];
+
+  // ==========================================
+  //  FUNCIONES PRINCIPALES
+  // ==========================================
+  async function uploadImage(file, productId) {
+    if (!file) return null;
     
-    // Inicializar Supabase
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log("📤 Subiendo imagen:", file.name);
     
-    // Obtener elementos
-    const emailInput = document.getElementById("email");
-    const passwordInput = document.getElementById("password");
-    const loginBtn = document.getElementById("loginBtn");
-    const errorDiv = document.getElementById("errorMsg");
-    
-    // Función de login
-    async function login() {
-      const email = emailInput.value.trim();
-      const password = passwordInput.value;
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${productId}_${Date.now()}.${fileExt}`;
       
-      errorDiv.innerHTML = "";
+      const { data, error } = await supabaseClient.storage
+        .from('productos')
+        .upload(fileName, file, { cacheControl: '3600', upsert: true });
       
-      if (!email || !password) {
-        errorDiv.innerText = "❌ Completa ambos campos";
-        return;
+      if (error) throw error;
+      
+      console.log("✅ Imagen subida");
+      
+      const { data: urlData } = supabaseClient.storage
+        .from('productos')
+        .getPublicUrl(fileName);
+      
+      return urlData.publicUrl;
+      
+    } catch (err) {
+      console.error("❌ Error subiendo imagen:", err);
+      alert("Error al subir imagen: " + err.message);
+      return null;
+    }
+  }
+
+  async function seedEjemplos() {
+    const { count } = await supabaseClient.from('productos').select('*', { count: 'exact', head: true });
+    if (count === 0) {
+      for (let ex of ejemplos) {
+        await supabaseClient.from('productos').insert([{ ...ex, activo: true }]);
       }
-      
-      // Mostrar loading
-      loginBtn.disabled = true;
-      loginBtn.innerHTML = '<span class="spinner"></span> Verificando...';
-      
-      try {
-        console.log("1. Intentando login con:", email);
-        
-        // Autenticar con Supabase
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: email,
-          password: password
-        });
-        
-        if (error) {
-          console.error("Error auth:", error);
-          throw error;
-        }
-        
-        console.log("2. Login exitoso, usuario ID:", data.user.id);
-        
-        // Verificar rol en tabla perfiles
-        const { data: perfil, error: perfilError } = await supabase
-          .from('perfiles')
-          .select('rol')
-          .eq('id', data.user.id)
-          .single();
-        
-        if (perfilError) {
-          console.error("Error perfil:", perfilError);
-          throw new Error("Error al verificar permisos");
-        }
-        
-        console.log("3. Rol del usuario:", perfil?.rol);
-        
-        if (perfil?.rol !== 'gerente') {
-          await supabase.auth.signOut();
-          throw new Error("No tienes permisos de administración");
-        }
-        
-        // Construir URL de redirección
-        let basePath = window.location.pathname.replace("/admin.html", "");
-        if (basePath === "") basePath = "/";
-        if (basePath === window.location.pathname) basePath = "/ArandaCrafts/";
-        
-        const redirectUrl = basePath + "?admin=true";
-        console.log("4. Redirigiendo a:", redirectUrl);
-        
-        window.location.href = redirectUrl;
-        
-      } catch (err) {
-        console.error("Error final:", err);
-        errorDiv.innerText = "❌ " + (err.message || "Email o contraseña incorrectos");
-        loginBtn.disabled = false;
-        loginBtn.innerHTML = "Entrar al panel";
-      }
+      console.log("📦 Ejemplos insertados");
+    }
+  }
+
+  async function loadProducts() {
+    const { data } = await supabaseClient.from('productos').select('*').order('id', { ascending: false });
+    products = data || [];
+    renderFeed();
+    console.log(`📦 ${products.length} productos cargados`);
+  }
+
+  async function deleteProduct(id) {
+    if (confirm("¿Eliminar esta creación?")) {
+      await supabaseClient.from('productos').delete().eq('id', id);
+      loadProducts();
+    }
+  }
+
+  async function updateProduct(id, updates) {
+    console.log("🔄 Actualizando producto:", id, updates);
+    const { error } = await supabaseClient
+      .from('productos')
+      .update(updates)
+      .eq('id', id);
+    
+    if (error) {
+      console.error("❌ Error:", error);
+      throw error;
+    }
+    console.log("✅ Producto actualizado");
+  }
+
+  async function addProduct(data) {
+    const { data: newProduct, error } = await supabaseClient
+      .from('productos')
+      .insert([{ ...data, activo: true }])
+      .select();
+    
+    if (error) throw error;
+    return newProduct[0];
+  }
+
+  // ==========================================
+  //  RENDERIZADO
+  // ==========================================
+  function renderStories() {
+    const cats = [
+      { id: 'todos', name: 'Todo', icon: 'fa-heart' },
+      { id: 'textil', name: 'Camisetas', icon: 'fa-tshirt' },
+      { id: 'sublimacion', name: 'Tazas/Botellas', icon: 'fa-mug-hot' },
+      { id: 'artesania', name: 'Llaveros', icon: 'fa-key' },
+      { id: 'laser', name: 'Láser', icon: 'fa-crown' }
+    ];
+    document.getElementById("storiesTrack").innerHTML = cats.map(c => `
+      <div class="story-circle" onclick="filterByCategory('${c.id}')">
+        <div class="ring"><i class="fas ${c.icon}"></i></div>
+        <div class="story-label">${c.name}</div>
+      </div>
+    `).join('');
+  }
+
+  window.filterByCategory = function(cat) { 
+    currentFilter = cat; 
+    renderFeed(); 
+  };
+
+  function getProductCategory(product) {
+    const name = (product.nombre_es || product.nombre || "").toLowerCase();
+    if (name.includes('camiseta') || name.includes('sudadera')) return 'textil';
+    if (name.includes('taza') || name.includes('botella')) return 'sublimacion';
+    if (name.includes('llavero') || name.includes('marcapaginas')) return 'artesania';
+    if (name.includes('grabado') || name.includes('láser')) return 'laser';
+    return 'todos';
+  }
+
+  function renderFeed() {
+    const container = document.getElementById("feedContainer");
+    let filtered = currentFilter === "todos" ? products : products.filter(p => getProductCategory(p) === currentFilter);
+    if (!filtered.length) {
+      container.innerHTML = `<div style="text-align:center; padding:40px;">🌸 Aún no hay productos. ${window.isAdmin ? 'Toca el botón + para empezar' : 'Vuelve pronto'}</div>`;
+      return;
+    }
+    container.innerHTML = "";
+    filtered.forEach(p => {
+      const card = document.createElement("div");
+      card.className = "product-card" + (window.isAdmin ? " editable" : "");
+      if (window.isAdmin) card.onclick = () => openEdit(p);
+      const displayName = p.nombre_es || p.nombre || "Creación artesanal";
+      const icono = p.icono || 'fa-star';
+      card.innerHTML = `
+        <div class="card-img">
+          ${p.imagen_url ? `<img src="${p.imagen_url}" alt="${escapeHtml(displayName)}">` : `<i class="fas ${icono}"></i>`}
+        </div>
+        <div class="card-info">
+          <div class="product-name">${escapeHtml(displayName)}</div>
+          <div class="product-price">${p.precio} €</div>
+          <div class="badge-craft"><i class="fas fa-hands"></i> hecho a mano</div>
+          <button class="btn-personalizar" onclick="event.stopPropagation(); alert('✨ Personalizar ${escapeHtml(displayName)} · ${p.precio}€\\n📧 Escríbenos para empezar')">Quiero personalizar ✨</button>
+          ${window.isAdmin ? `<button class="btn-personalizar" style="background:#c96f3a; margin-top:8px;" onclick="event.stopPropagation(); deleteProduct(${p.id})"><i class="fas fa-trash-alt"></i> Eliminar</button>` : ''}
+        </div>
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  function escapeHtml(str) { if (!str) return ""; return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
+
+  // ==========================================
+  //  MODALES
+  // ==========================================
+  function openEdit(prod) {
+    currentEditingId = prod.id;
+    document.getElementById("editName").value = prod.nombre_es || "";
+    document.getElementById("editPrice").value = prod.precio;
+    document.getElementById("editIcon").value = prod.icono || "";
+    
+    const previewDiv = document.getElementById("editImagePreview");
+    if (prod.imagen_url) {
+      previewDiv.innerHTML = `<img src="${prod.imagen_url}" alt="Vista previa">`;
+    } else {
+      previewDiv.innerHTML = `<i class="fas fa-image"></i>`;
+    }
+    document.getElementById("editImageFile").value = "";
+    currentEditingImageFile = null;
+    document.getElementById("editModal").style.display = "flex";
+  }
+
+  document.getElementById("editImageFile").addEventListener("change", (e) => {
+    if (e.target.files && e.target.files[0]) {
+      currentEditingImageFile = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        document.getElementById("editImagePreview").innerHTML = `<img src="${ev.target.result}" alt="Vista previa">`;
+      };
+      reader.readAsDataURL(currentEditingImageFile);
+    }
+  });
+
+  window.saveCurrentProduct = async function() {
+    const name = document.getElementById("editName").value.trim();
+    const price = parseFloat(document.getElementById("editPrice").value);
+    const icon = document.getElementById("editIcon").value.trim();
+    
+    if (!name || isNaN(price)) { 
+      alert("Completa nombre y precio"); 
+      return; 
     }
     
-    // Asignar evento al botón
-    loginBtn.addEventListener("click", login);
-    
-    // Verificar si ya hay sesión activa
-    async function checkSession() {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        const { data: perfil } = await supabase
-          .from('perfiles')
-          .select('rol')
-          .eq('id', session.user.id)
-          .single();
-        
-        if (perfil?.rol === 'gerente') {
-          let basePath = window.location.pathname.replace("/admin.html", "");
-          if (basePath === "") basePath = "/";
-          if (basePath === window.location.pathname) basePath = "/ArandaCrafts/";
-          window.location.href = basePath + "?admin=true";
-        }
+    try {
+      let imagenUrl = null;
+      if (currentEditingImageFile) {
+        imagenUrl = await uploadImage(currentEditingImageFile, currentEditingId);
       }
+      
+      const updates = { nombre_es: name, precio: price, icono: icon };
+      if (imagenUrl) updates.imagen_url = imagenUrl;
+      
+      await updateProduct(currentEditingId, updates);
+      alert("✅ Producto actualizado");
+      closeModal();
+      await loadProducts();
+      
+    } catch (err) {
+      console.error("Error:", err);
+      alert("Error al guardar: " + err.message);
+    }
+  };
+
+  window.closeModal = function() { 
+    document.getElementById("editModal").style.display = "none"; 
+    currentEditingImageFile = null;
+  };
+
+  window.openAddModal = function() { 
+    document.getElementById("addModal").style.display = "flex"; 
+  };
+  
+  window.closeAddModal = function() { 
+    document.getElementById("addModal").style.display = "none";
+    document.getElementById("addImageFile").value = "";
+    document.getElementById("addImagePreview").innerHTML = `<i class="fas fa-image"></i>`;
+  };
+
+  document.getElementById("addImageFile").addEventListener("change", (e) => {
+    if (e.target.files && e.target.files[0]) {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        document.getElementById("addImagePreview").innerHTML = `<img src="${ev.target.result}" alt="Vista previa">`;
+      };
+      reader.readAsDataURL(e.target.files[0]);
+    }
+  });
+
+  window.createNewProduct = async function() {
+    const name = document.getElementById("addName").value.trim();
+    const price = parseFloat(document.getElementById("addPrice").value);
+    const icon = document.getElementById("addIcon").value.trim() || "fa-heart";
+    const imageFile = document.getElementById("addImageFile").files[0];
+    
+    if (!name || isNaN(price)) { 
+      alert("Completa nombre y precio"); 
+      return; 
     }
     
-    checkSession();
-  })();
+    try {
+      const newProduct = await addProduct({ nombre_es: name, precio: price, icono: icon });
+      console.log("✅ Producto creado, ID:", newProduct.id);
+      
+      if (imageFile && newProduct) {
+        const imagenUrl = await uploadImage(imageFile, newProduct.id);
+        if (imagenUrl) {
+          await updateProduct(newProduct.id, { imagen_url: imagenUrl });
+          console.log("✅ Imagen asignada");
+        }
+      }
+      
+      closeAddModal();
+      document.getElementById("addName").value = "";
+      document.getElementById("addPrice").value = "";
+      document.getElementById("addImageFile").value = "";
+      document.getElementById("addImagePreview").innerHTML = `<i class="fas fa-image"></i>`;
+      await loadProducts();
+      alert("✅ Producto creado correctamente");
+      
+    } catch (err) {
+      console.error("❌ Error:", err);
+      alert("Error al crear producto: " + err.message);
+    }
+  };
+
+  // ==========================================
+  //  LOGOUT Y UI
+  // ==========================================
+  window.logout = async function() {
+    if (supabaseClient) await supabaseClient.auth.signOut();
+    window.location.href = window.location.pathname;
+  };
+
+  async function updateUI() {
+    const authDiv = document.getElementById("authButtons");
+    const fab = document.getElementById("fabCreateBtn");
+    
+    if (window.isAdmin) {
+      authDiv.innerHTML = `<div style="display:flex; gap:8px;"><span style="background:#d47b3a; padding:5px 15px; border-radius:40px; color:white; font-weight:600;">🌸 Tati</span><button class="icon-soft" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div>`;
+      fab.style.display = "flex";
+      console.log("👑 Modo ADMIN activado");
+    } else {
+      authDiv.innerHTML = `<a href="admin.html" class="icon-soft"><i class="fas fa-user-circle"></i></a>`;
+      fab.style.display = "none";
+      console.log("👤 Modo cliente");
+    }
+  }
+
+  // ==========================================
+  //  INICIALIZACIÓN
+  // ==========================================
+  async function init() {
+    console.log("🚀 Iniciando app...");
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    await seedEjemplos();
+    await loadProducts();
+    renderStories();
+    await updateUI();
+    
+    document.getElementById("fabCreateBtn").onclick = () => openAddModal();
+  }
+
+  window.onclick = (e) => { 
+    if (e.target.classList.contains('modal-overlay')) e.target.style.display = "none"; 
+  };
+  
+  init();
 </script>
 </body>
 </html>
