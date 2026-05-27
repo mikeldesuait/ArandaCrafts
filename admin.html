@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=yes">
-  <title>Aranda Crafts | Personaliza con arte</title>
+  <title>Aranda Crafts | </title>
   <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -86,7 +86,7 @@
 
 <button id="fabCreateBtn" class="fab-create" style="display: none;">+</button>
 
-<!-- MODAL EDITAR -->
+<!-- MODALES -->
 <div id="editModal" class="modal-overlay">
   <div class="modal-card">
     <h3>✏️ Editar pieza</h3>
@@ -94,7 +94,7 @@
     <input type="file" id="editImageFile" accept="image/*">
     <input type="text" id="editName" placeholder="Nombre del producto">
     <input type="text" id="editPrice" placeholder="Precio (€)">
-    <input type="text" id="editIcon" placeholder="Icono (fallback)">
+    <input type="text" id="editIcon" placeholder="Icono (fa-tshirt, fa-mug-hot, fa-key, fa-crown)">
     <div style="display:flex; gap:12px; justify-content:flex-end; margin-top:8px;">
       <button class="btn-secondary" onclick="closeModal()">Cancelar</button>
       <button class="btn-primary" onclick="saveCurrentProduct()">Guardar</button>
@@ -102,7 +102,6 @@
   </div>
 </div>
 
-<!-- MODAL AÑADIR -->
 <div id="addModal" class="modal-overlay">
   <div class="modal-card">
     <h3>➕ Nueva creación</h3>
@@ -110,7 +109,7 @@
     <input type="file" id="addImageFile" accept="image/*">
     <input type="text" id="addName" placeholder="Nombre del producto">
     <input type="text" id="addPrice" placeholder="Precio (€)">
-    <input type="text" id="addIcon" placeholder="Icono (fallback)" value="fa-heart">
+    <input type="text" id="addIcon" placeholder="Icono (fa-tshirt, fa-mug-hot...)" value="fa-heart">
     <div style="display:flex; gap:12px; justify-content:flex-end;">
       <button class="btn-secondary" onclick="closeAddModal()">Cancelar</button>
       <button class="btn-primary" onclick="createNewProduct()">Crear producto</button>
@@ -123,30 +122,18 @@
 </footer>
 
 <script>
-  // ==========================================
-  //  CONFIGURACIÓN
-  // ==========================================
   const SUPABASE_URL = "https://nccggkkxezbrydeyzyko.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_1uOhbiY9pDQ4k4q0Lz7wpg_7c6ykx7p";
   
-  let supabaseClient = null;
-  let products = [];
-  let currentEditingId = null;
-  let currentEditingImageFile = null;
-  let currentFilter = "todos";
-  
-  // Modo admin
+  let supabase, products = [], isAdmin = false, currentEditingId = null, currentEditingImageFile = null, currentFilter = "todos";
+
+  // Detectar modo admin
   const urlParams = new URLSearchParams(window.location.search);
-  const IS_ADMIN_MODE = (urlParams.get('admin') === 'true');
-  window.isAdmin = IS_ADMIN_MODE;
-  
-  if (IS_ADMIN_MODE) {
+  if (urlParams.get('admin') === 'true') {
+    isAdmin = true;
     window.history.replaceState({}, document.title, window.location.pathname);
   }
 
-  // ==========================================
-  //  EJEMPLOS INICIALES
-  // ==========================================
   const ejemplos = [
     { nombre_es: "Camiseta 'Arte Flow'", precio: 22.90, icono: "fa-tshirt" },
     { nombre_es: "Taza 'Brillo Creativo'", precio: 14.50, icono: "fa-mug-hot" },
@@ -158,64 +145,48 @@
     { nombre_es: "Pack 2 tazas 'Amistad'", precio: 26.90, icono: "fa-mug-hot" }
   ];
 
-  // ==========================================
-  //  FUNCIONES PRINCIPALES
-  // ==========================================
-  async function uploadImage(file, productId) {
-    if (!file) return null;
-    console.log("📤 Subiendo imagen:", file.name);
-    try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${productId}_${Date.now()}.${fileExt}`;
-      const { data, error } = await supabaseClient.storage
-        .from('productos')
-        .upload(fileName, file, { cacheControl: '3600', upsert: true });
-      if (error) throw error;
-      const { data: urlData } = supabaseClient.storage.from('productos').getPublicUrl(fileName);
-      return urlData.publicUrl;
-    } catch (err) {
-      console.error("❌ Error subiendo imagen:", err);
-      alert("Error al subir imagen: " + err.message);
-      return null;
-    }
-  }
-
   async function seedEjemplos() {
-    const { count } = await supabaseClient.from('productos').select('*', { count: 'exact', head: true });
+    const { count } = await supabase.from('productos').select('*', { count: 'exact', head: true });
     if (count === 0) {
-      for (let ex of ejemplos) await supabaseClient.from('productos').insert([{ ...ex, activo: true }]);
+      for (let ex of ejemplos) await supabase.from('productos').insert([{ ...ex, activo: true }]);
       console.log("📦 Ejemplos insertados");
     }
   }
 
   async function loadProducts() {
-    const { data } = await supabaseClient.from('productos').select('*').order('id', { ascending: false });
+    const { data } = await supabase.from('productos').select('*').order('id', { ascending: false });
     products = data || [];
     renderFeed();
-    console.log(`📦 ${products.length} productos cargados`);
   }
 
   async function deleteProduct(id) {
     if (confirm("¿Eliminar esta creación?")) {
-      await supabaseClient.from('productos').delete().eq('id', id);
+      await supabase.from('productos').delete().eq('id', id);
       loadProducts();
     }
   }
 
   async function updateProduct(id, updates) {
-    const { error } = await supabaseClient.from('productos').update(updates).eq('id', id);
+    const { error } = await supabase.from('productos').update(updates).eq('id', id);
     if (error) throw error;
   }
 
   async function addProduct(data) {
-    const { data: newProduct, error } = await supabaseClient.from('productos').insert([{ ...data, activo: true }]).select();
+    const { data: newProduct, error } = await supabase.from('productos').insert([{ ...data, activo: true }]).select();
     if (error) throw error;
     return newProduct[0];
   }
 
-  // ==========================================
-  //  RENDERIZADO
-  // ==========================================
+  async function uploadImage(file, productId) {
+    if (!file) return null;
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${productId}_${Date.now()}.${fileExt}`;
+    const { error } = await supabase.storage.from('productos').upload(fileName, file);
+    if (error) throw error;
+    const { data } = supabase.storage.from('productos').getPublicUrl(fileName);
+    return data.publicUrl;
+  }
+
   function renderStories() {
     const cats = [
       { id: 'todos', name: 'Todo', icon: 'fa-heart' },
@@ -247,24 +218,26 @@
     const container = document.getElementById("feedContainer");
     let filtered = currentFilter === "todos" ? products : products.filter(p => getProductCategory(p) === currentFilter);
     if (!filtered.length) {
-      container.innerHTML = `<div style="text-align:center; padding:40px;">🌸 Aún no hay productos. ${window.isAdmin ? 'Toca el botón + para empezar' : 'Vuelve pronto'}</div>`;
+      container.innerHTML = `<div style="text-align:center; padding:40px;">🌸 Aún no hay productos. ${isAdmin ? 'Toca el botón + para empezar' : 'Vuelve pronto'}</div>`;
       return;
     }
     container.innerHTML = "";
     filtered.forEach(p => {
       const card = document.createElement("div");
-      card.className = "product-card" + (window.isAdmin ? " editable" : "");
-      if (window.isAdmin) card.onclick = () => openEdit(p);
+      card.className = "product-card" + (isAdmin ? " editable" : "");
+      if (isAdmin) card.onclick = () => openEdit(p);
       const displayName = p.nombre_es || "Creación artesanal";
       const icono = p.icono || 'fa-star';
       card.innerHTML = `
-        <div class="card-img">${p.imagen_url ? `<img src="${p.imagen_url}" alt="${escapeHtml(displayName)}">` : `<i class="fas ${icono}"></i>`}</div>
+        <div class="card-img">
+          ${p.imagen_url ? `<img src="${p.imagen_url}" alt="${escapeHtml(displayName)}">` : `<i class="fas ${icono}"></i>`}
+        </div>
         <div class="card-info">
           <div class="product-name">${escapeHtml(displayName)}</div>
           <div class="product-price">${p.precio} €</div>
           <div class="badge-craft"><i class="fas fa-hands"></i> hecho a mano</div>
           <button class="btn-personalizar" onclick="event.stopPropagation(); alert('✨ Personalizar ${escapeHtml(displayName)} · ${p.precio}€\\n📧 Escríbenos para empezar')">Quiero personalizar ✨</button>
-          ${window.isAdmin ? `<button class="btn-personalizar" style="background:#c96f3a; margin-top:8px;" onclick="event.stopPropagation(); deleteProduct(${p.id})"><i class="fas fa-trash-alt"></i> Eliminar</button>` : ''}
+          ${isAdmin ? `<button class="btn-personalizar" style="background:#c96f3a; margin-top:8px;" onclick="event.stopPropagation(); deleteProduct(${p.id})"><i class="fas fa-trash-alt"></i> Eliminar</button>` : ''}
         </div>
       `;
       container.appendChild(card);
@@ -273,9 +246,6 @@
 
   function escapeHtml(str) { if (!str) return ""; return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
 
-  // ==========================================
-  //  MODALES
-  // ==========================================
   function openEdit(prod) {
     currentEditingId = prod.id;
     document.getElementById("editName").value = prod.nombre_es || "";
@@ -346,18 +316,15 @@
     } catch (err) { alert("Error: " + err.message); }
   };
 
-  // ==========================================
-  //  LOGOUT
-  // ==========================================
   window.logout = async function() {
-    if (supabaseClient) await supabaseClient.auth.signOut();
+    await supabase.auth.signOut();
     window.location.href = window.location.pathname;
   };
 
   async function updateUI() {
     const authDiv = document.getElementById("authButtons");
     const fab = document.getElementById("fabCreateBtn");
-    if (window.isAdmin) {
+    if (isAdmin) {
       authDiv.innerHTML = `<div style="display:flex; gap:8px;"><span style="background:#d47b3a; padding:5px 15px; border-radius:40px; color:white; font-weight:600;">🌸 Tati</span><button class="icon-soft" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div>`;
       fab.style.display = "flex";
     } else {
@@ -367,7 +334,7 @@
   }
 
   async function init() {
-    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     await seedEjemplos();
     await loadProducts();
     renderStories();
