@@ -64,6 +64,7 @@
       transition: all 0.2s;
     }
     .login-card button:hover { background: #b95f2a; transform: scale(1.02); }
+    .login-card button:disabled { background: #cbad93; cursor: not-allowed; }
     .error { color: #c16e3a; margin-top: 16px; font-size: 0.8rem; }
     .back-link {
       display: inline-block;
@@ -72,102 +73,137 @@
       text-decoration: none;
       font-size: 0.8rem;
     }
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 0.8s linear infinite;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
 <div class="login-card">
   <h1>🌸 Aranda Crafts</h1>
-  <p>acceso para el equipo en prueba</p>
-  <input type="email" id="email" placeholder="Email">
-  <input type="password" id="password" placeholder="Contraseña">
-  <button onclick="login()">Entrar al panel</button>
+  <p>acceso para el equipo</p>
+  <input type="email" id="email" placeholder="Email" autocomplete="email">
+  <input type="password" id="password" placeholder="Contraseña" autocomplete="current-password">
+  <button id="loginBtn">Entrar al panel</button>
   <div id="errorMsg" class="error"></div>
   <a href="./" class="back-link">← Volver a la tienda</a>
 </div>
 
 <script>
-  // Configuración
-  const SUPABASE_URL = "https://nccggkkxezbrydeyzyko.supabase.co";
-  const SUPABASE_ANON_KEY = "sb_publishable_1uOhbiY9pDQ4k4q0Lz7wpg_7c6ykx7p";
-  
-  // Inicializar Supabase
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  
-  // Función de login GLOBAL (para que onclick la encuentre)
-  window.login = async function() {
-    const email = document.getElementById("email").value.trim();
-    const password = document.getElementById("password").value;
+  (function() {
+    // Configuración
+    const SUPABASE_URL = "https://nccggkkxezbrydeyzyko.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_1uOhbiY9pDQ4k4q0Lz7wpg_7c6ykx7p";
+    
+    // Inicializar Supabase
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    // Obtener elementos
+    const emailInput = document.getElementById("email");
+    const passwordInput = document.getElementById("password");
+    const loginBtn = document.getElementById("loginBtn");
     const errorDiv = document.getElementById("errorMsg");
     
-    errorDiv.innerHTML = "";
-    
-    if (!email || !password) {
-      errorDiv.innerText = "❌ Completa ambos campos";
-      return;
+    // Función de login
+    async function login() {
+      const email = emailInput.value.trim();
+      const password = passwordInput.value;
+      
+      errorDiv.innerHTML = "";
+      
+      if (!email || !password) {
+        errorDiv.innerText = "❌ Completa ambos campos";
+        return;
+      }
+      
+      // Mostrar loading
+      loginBtn.disabled = true;
+      loginBtn.innerHTML = '<span class="spinner"></span> Verificando...';
+      
+      try {
+        console.log("1. Intentando login con:", email);
+        
+        // Autenticar con Supabase
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: email,
+          password: password
+        });
+        
+        if (error) {
+          console.error("Error auth:", error);
+          throw error;
+        }
+        
+        console.log("2. Login exitoso, usuario ID:", data.user.id);
+        
+        // Verificar rol en tabla perfiles
+        const { data: perfil, error: perfilError } = await supabase
+          .from('perfiles')
+          .select('rol')
+          .eq('id', data.user.id)
+          .single();
+        
+        if (perfilError) {
+          console.error("Error perfil:", perfilError);
+          throw new Error("Error al verificar permisos");
+        }
+        
+        console.log("3. Rol del usuario:", perfil?.rol);
+        
+        if (perfil?.rol !== 'gerente') {
+          await supabase.auth.signOut();
+          throw new Error("No tienes permisos de administración");
+        }
+        
+        // Construir URL de redirección
+        let basePath = window.location.pathname.replace("/admin.html", "");
+        if (basePath === "") basePath = "/";
+        if (basePath === window.location.pathname) basePath = "/ArandaCrafts/";
+        
+        const redirectUrl = basePath + "?admin=true";
+        console.log("4. Redirigiendo a:", redirectUrl);
+        
+        window.location.href = redirectUrl;
+        
+      } catch (err) {
+        console.error("Error final:", err);
+        errorDiv.innerText = "❌ " + (err.message || "Email o contraseña incorrectos");
+        loginBtn.disabled = false;
+        loginBtn.innerHTML = "Entrar al panel";
+      }
     }
     
-    try {
-      console.log("Intentando login con:", email);
-      
-      // Autenticar con Supabase
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: password
-      });
-      
-      if (error) {
-        console.error("Error auth:", error);
-        throw error;
-      }
-      
-      console.log("Login exitoso, usuario:", data.user.id);
-      
-      // Verificar rol en tabla perfiles
-      const { data: perfil, error: perfilError } = await supabase
-        .from('perfiles')
-        .select('rol')
-        .eq('id', data.user.id)
-        .single();
-      
-      if (perfilError) {
-        console.error("Error perfil:", perfilError);
-        throw new Error("Error al verificar permisos");
-      }
-      
-      console.log("Rol del usuario:", perfil?.rol);
-      
-      if (perfil?.rol !== 'gerente') {
-        await supabase.auth.signOut();
-        throw new Error("No tienes permisos de administración");
-      }
-      
-      // Redirigir
-      const basePath = window.location.pathname.replace("/admin.html", "");
-      const redirectUrl = basePath + "?admin=true";
-      console.log("Redirigiendo a:", redirectUrl);
-      window.location.href = redirectUrl;
-      
-    } catch (err) {
-      console.error("Error final:", err);
-      errorDiv.innerText = "❌ " + (err.message || "Email o contraseña incorrectos");
-    }
-  };
-  
-  // Verificar si ya hay sesión activa al cargar
-  (async function checkSession() {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-      const { data: perfil } = await supabase
-        .from('perfiles')
-        .select('rol')
-        .eq('id', session.user.id)
-        .single();
-      
-      if (perfil?.rol === 'gerente') {
-        const basePath = window.location.pathname.replace("/admin.html", "");
-        window.location.href = basePath + "?admin=true";
+    // Asignar evento al botón
+    loginBtn.addEventListener("click", login);
+    
+    // Verificar si ya hay sesión activa
+    async function checkSession() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const { data: perfil } = await supabase
+          .from('perfiles')
+          .select('rol')
+          .eq('id', session.user.id)
+          .single();
+        
+        if (perfil?.rol === 'gerente') {
+          let basePath = window.location.pathname.replace("/admin.html", "");
+          if (basePath === "") basePath = "/";
+          if (basePath === window.location.pathname) basePath = "/ArandaCrafts/";
+          window.location.href = basePath + "?admin=true";
+        }
       }
     }
+    
+    checkSession();
   })();
 </script>
 </body>
