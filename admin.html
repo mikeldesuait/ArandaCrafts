@@ -64,6 +64,7 @@
       transition: all 0.2s;
     }
     .login-card button:hover { background: #b95f2a; transform: scale(1.02); }
+    .login-card button:disabled { background: #cbad93; cursor: not-allowed; }
     .error { color: #c16e3a; margin-top: 16px; font-size: 0.8rem; }
     .back-link {
       display: inline-block;
@@ -72,37 +73,116 @@
       text-decoration: none;
       font-size: 0.8rem;
     }
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-radius: 50%;
+      border-top-color: white;
+      animation: spin 0.8s linear infinite;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
 <div class="login-card">
   <h1>🌸 Aranda Crafts</h1>
   <p>acceso para el equipo</p>
-  <input type="email" id="email" placeholder="Email" value="aranda.crafts@gmail.com">
-  <input type="password" id="password" placeholder="Contraseña">
-  <button onclick="login()">Entrar al panel</button>
+  <input type="email" id="email" placeholder="Email" autocomplete="email">
+  <input type="password" id="password" placeholder="Contraseña" autocomplete="current-password">
+  <button id="loginBtn" onclick="login()">Entrar al panel</button>
   <div id="errorMsg" class="error"></div>
   <a href="/" class="back-link">← Volver a la tienda</a>
 </div>
 
 <script>
+  // Configuración de Supabase (solo la URL y clave anónima, sin credenciales de usuario)
   const SUPABASE_URL = "https://nccggkkxezbrydeyzyko.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_1uOhbiY9pDQ4k4q0Lz7wpg_7c6ykx7p";
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  
+  let supabase;
 
-  async function login() {
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
-    const errorDiv = document.getElementById("errorMsg");
+  // Inicializar Supabase
+  async function initSupabase() {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     
-    // Verificar credenciales de Tati
-    if (email === "aranda.crafts@gmail.com" && password === "aranda2025") {
-      // Redirigir a la página principal con modo admin activado
-      window.location.href = "/?admin=true";
-    } else {
-      errorDiv.innerText = "❌ Acceso solo para el equipo Aranda";
+    // Verificar si ya hay una sesión activa
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      // Verificar si el usuario tiene rol de gerente
+      const { data: perfil } = await supabase
+        .from('perfiles')
+        .select('rol')
+        .eq('id', session.user.id)
+        .single();
+      
+      if (perfil?.rol === 'gerente') {
+        // Redirigir directamente al modo admin
+        window.location.href = "/?admin=true";
+      }
     }
   }
+
+  async function login() {
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+    const errorDiv = document.getElementById("errorMsg");
+    const loginBtn = document.getElementById("loginBtn");
+    
+    // Limpiar mensaje anterior
+    errorDiv.innerHTML = "";
+    
+    // Validar campos
+    if (!email || !password) {
+      errorDiv.innerText = "❌ Completa ambos campos";
+      return;
+    }
+    
+    // Mostrar loading
+    loginBtn.disabled = true;
+    loginBtn.innerHTML = '<span class="spinner"></span> Verificando...';
+    
+    try {
+      // 1. Autenticar con Supabase (sin comparaciones locales)
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password
+      });
+      
+      if (error) throw error;
+      
+      // 2. Verificar que el usuario tiene rol 'gerente'
+      const { data: perfil, error: perfilError } = await supabase
+        .from('perfiles')
+        .select('rol')
+        .eq('id', data.user.id)
+        .single();
+      
+      if (perfilError) throw new Error("Error al verificar permisos");
+      
+      // 3. Si no es gerente, cerrar sesión y denegar acceso
+      if (perfil?.rol !== 'gerente') {
+        await supabase.auth.signOut();
+        throw new Error("No tienes permisos de administración");
+      }
+      
+      // 4. Todo correcto: redirigir con modo admin
+      window.location.href = "/?admin=true";
+      
+    } catch (err) {
+      console.error("Login error:", err);
+      // Mensaje genérico de error (no revelamos si existe el usuario o no)
+      errorDiv.innerText = "❌ Email o contraseña incorrectos, o no tienes permisos";
+      // Restaurar botón
+      loginBtn.disabled = false;
+      loginBtn.innerHTML = "Entrar al panel";
+    }
+  }
+  
+  // Inicializar
+  initSupabase();
 </script>
 </body>
 </html>
