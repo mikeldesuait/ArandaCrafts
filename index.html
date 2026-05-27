@@ -11,32 +11,165 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Quicksand', sans-serif; background: #fef9f2; color: #2d2a24; scroll-behavior: smooth; }
 
-    .soft-header {
-      position: sticky; top: 0; background: rgba(255, 250, 240, 0.96); backdrop-filter: blur(12px);
-      padding: 16px 20px; display: flex; flex-direction: column; align-items: center;
-      border-bottom: 1px solid #ffe1c4; z-index: 100;
+    /* ========== HEADER DINÁMICO ========== */
+    .dynamic-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      transition: all 0.3s ease;
     }
-    .logo-area h1 { font-size: 2rem; font-weight: 800; background: linear-gradient(135deg, #d47b3a, #b95f2a); -webkit-background-clip: text; background-clip: text; color: transparent; }
-    .logo-area p { font-size: 0.7rem; color: #b78f6e; letter-spacing: 1.5px; }
-    .header-actions { display: flex; gap: 12px; justify-content: center; margin-top: 6px; }
-    .icon-soft { width: 42px; height: 42px; background: #fff1e6; border-radius: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: none; color: #c16e3a; font-size: 1.2rem; transition: all 0.2s; }
+
+    /* Header superior (logo y acciones) */
+    .main-header {
+      background: rgba(255, 250, 240, 0.96);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid #ffe1c4;
+      transition: all 0.3s ease;
+      padding: 16px 20px;
+    }
+
+    /* Header grande (inicial) */
+    .main-header.large {
+      padding: 20px 20px;
+    }
+    .main-header.large .logo-area h1 {
+      font-size: 2rem;
+    }
+    .main-header.large .logo-area p {
+      font-size: 0.7rem;
+      opacity: 1;
+    }
+
+    /* Header pequeño (scroll) */
+    .main-header.small {
+      padding: 8px 20px;
+    }
+    .main-header.small .logo-area h1 {
+      font-size: 1.3rem;
+    }
+    .main-header.small .logo-area p {
+      font-size: 0.55rem;
+      opacity: 0.7;
+    }
+    .main-header.small .icon-soft {
+      width: 36px;
+      height: 36px;
+      font-size: 1rem;
+    }
+
+    .logo-area {
+      text-align: center;
+      transition: all 0.3s ease;
+    }
+    .logo-area h1 {
+      font-weight: 800;
+      background: linear-gradient(135deg, #d47b3a, #b95f2a);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      transition: all 0.3s ease;
+    }
+    .logo-area p {
+      color: #b78f6e;
+      letter-spacing: 1.5px;
+      transition: all 0.3s ease;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-top: 6px;
+      transition: all 0.3s ease;
+    }
+    .main-header.small .header-actions {
+      margin-top: 0;
+    }
+
+    .icon-soft {
+      background: #fff1e6;
+      border-radius: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      border: none;
+      color: #c16e3a;
+      transition: all 0.2s;
+    }
     .icon-soft:hover { background: #c16e3a; color: white; }
 
+    /* ========== STORIES FIJAS AL SCROLL ========== */
+    .stories-wrapper {
+      position: sticky;
+      top: 70px;
+      z-index: 99;
+      background: #fef9f2;
+      border-bottom: 1px solid #ffe1c4;
+      transition: top 0.3s ease;
+    }
+    /* Cuando header se achica, las stories suben */
+    .stories-wrapper.sticky-top {
+      top: 56px;
+    }
+
+    .stories-scroll { 
+      overflow-x: auto; 
+      white-space: nowrap; 
+      padding: 12px 16px;
+      scrollbar-width: thin;
+    }
+    .stories-scroll::-webkit-scrollbar {
+      height: 3px;
+    }
+    .stories-track { 
+      display: inline-flex; 
+      gap: 20px;
+    }
+    @media (min-width: 768px) {
+      .stories-scroll {
+        overflow-x: visible;
+        white-space: normal;
+        display: flex;
+        justify-content: center;
+      }
+      .stories-track {
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+    }
+    .story-circle { 
+      display: inline-flex; 
+      flex-direction: column; 
+      align-items: center; 
+      gap: 6px; 
+      cursor: pointer; 
+    }
+    .ring { 
+      width: 60px; 
+      height: 60px; 
+      background: #ffe1c4; 
+      border-radius: 50%; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      transition: all 0.2s; 
+    }
+    .ring i { font-size: 1.6rem; color: #c16e3a; }
+    .story-label { font-size: 0.65rem; font-weight: 600; color: #6b4c30; }
+
+    /* Ajuste para móvil cuando header se achica */
+    @media (max-width: 640px) {
+      .stories-wrapper {
+        top: 70px;
+      }
+    }
+
+    /* ========== RESTO DEL CSS (productos, modales, etc) ========== */
     .hero-gentle { padding: 40px 20px; text-align: center; background: linear-gradient(145deg, #fff5eb 0%, #ffede1 100%); }
     .hero-gentle h2 { font-size: 1.8rem; font-weight: 700; color: #3b2c21; }
     .hero-gentle span { color: #d47b3a; }
     .hero-gentle p { margin-top: 12px; max-width: 320px; margin-left: auto; margin-right: auto; color: #8f735b; }
-
-    .stories-scroll { overflow-x: auto; white-space: nowrap; padding: 20px 16px; scrollbar-width: thin; }
-    .stories-track { display: inline-flex; gap: 20px; }
-    @media (min-width: 768px) {
-      .stories-scroll { overflow-x: visible; white-space: normal; display: flex; justify-content: center; }
-      .stories-track { flex-wrap: wrap; justify-content: center; }
-    }
-    .story-circle { display: inline-flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; }
-    .ring { width: 72px; height: 72px; background: #ffe1c4; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
-    .ring i { font-size: 2rem; color: #c16e3a; }
-    .story-label { font-size: 0.7rem; font-weight: 600; color: #6b4c30; }
 
     .feed-container { width: 100%; max-width: 1300px; margin: 0 auto; padding: 20px; }
     .products-grid { display: flex; flex-wrap: wrap; justify-content: flex-start; gap: 30px; align-items: flex-start; width: 100%; }
@@ -58,52 +191,19 @@
     .product-price { color: #c16e3a; font-weight: 800; margin: 12px 0; font-size: 1.6rem; text-align: center; letter-spacing: -0.5px; }
     .badge-craft { background: #fff1e6; color: #c16e3a; display: inline-block; padding: 4px 12px; border-radius: 40px; font-size: 0.7rem; margin: 8px auto; text-align: center; }
     
-    /* DESCRIPCIÓN CON "LEER MÁS" */
-    .product-description {
-      font-size: 0.8rem;
-      color: #555;
-      line-height: 1.4;
-      margin: 10px 0;
-      text-align: left;
-    }
-    .product-description .full-text {
-      display: none;
-    }
-    .product-description .full-text.show {
-      display: inline;
-    }
-    .product-description .read-more-btn {
-      background: none;
-      border: none;
-      color: #c16e3a;
-      font-weight: 700;
-      cursor: pointer;
-      font-size: 0.75rem;
-      margin-top: 5px;
-      padding: 0;
-      font-family: 'Quicksand', sans-serif;
-    }
-    .product-description .read-more-btn:hover {
-      text-decoration: underline;
-    }
+    .product-description { font-size: 0.8rem; color: #555; line-height: 1.4; margin: 10px 0; text-align: left; }
+    .product-description .short-text { display: inline; }
+    .product-description .full-text { display: none; }
+    .product-description .read-more-btn { background: none; border: none; color: #c16e3a; font-weight: 700; cursor: pointer; font-size: 0.7rem; padding: 0; font-family: 'Quicksand', sans-serif; }
+    .product-description .read-more-btn:hover { text-decoration: underline; }
     
-    .like-container {
-      display: flex; align-items: center; justify-content: center; gap: 12px;
-      margin: 15px 0 12px 0; padding: 10px 0;
-      border-top: 1px solid #ffe1c4; border-bottom: 1px solid #ffe1c4;
-      background: #fefaf5; border-radius: 60px;
-    }
+    .like-container { display: flex; align-items: center; justify-content: center; gap: 12px; margin: 15px 0 12px 0; padding: 10px 0; border-top: 1px solid #ffe1c4; border-bottom: 1px solid #ffe1c4; background: #fefaf5; border-radius: 60px; }
     .like-btn { background: none; border: none; font-size: 1.6rem; cursor: pointer; transition: transform 0.2s; color: #888; }
     .like-btn.liked { color: #e74c3c; transform: scale(1.1); }
     .like-btn:hover { transform: scale(1.15); }
     .like-count { font-size: 0.9rem; color: #555; font-weight: 600; }
     
-    .btn-personalizar { 
-      background: #d47b3a; color: white; border: none; width: 100%; padding: 12px;
-      border-radius: 40px; font-weight: 800; font-family: 'Quicksand', sans-serif;
-      margin-top: 12px; cursor: pointer; font-size: 1rem;
-      transition: all 0.2s; text-transform: uppercase; letter-spacing: 0.5px;
-    }
+    .btn-personalizar { background: #d47b3a; color: white; border: none; width: 100%; padding: 12px; border-radius: 40px; font-weight: 800; font-family: 'Quicksand', sans-serif; margin-top: 12px; cursor: pointer; font-size: 1rem; transition: all 0.2s; text-transform: uppercase; letter-spacing: 0.5px; }
     .btn-personalizar:hover { background: #b95f2a; transform: scale(1.02); }
     .fab-create { position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; background: #d47b3a; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.6rem; box-shadow: 0 6px 14px rgba(0,0,0,0.1); cursor: pointer; border: none; z-index: 90; transition: all 0.2s; }
     .fab-create:hover { transform: scale(1.05); background: #b95f2a; }
@@ -122,21 +222,26 @@
 </head>
 <body>
 
-<div class="soft-header">
-  <div class="logo-area">
-    <h1>Aranda Crafts</h1>
-    <p>arte personalizado con alma</p>
+<div class="dynamic-header">
+  <div class="main-header large" id="mainHeader">
+    <div class="logo-area">
+      <h1>Aranda Crafts</h1>
+      <p>arte personalizado con alma</p>
+    </div>
+    <div class="header-actions" id="authButtons"></div>
   </div>
-  <div class="header-actions" id="authButtons"></div>
+
+  <!-- Stories fijas al scroll -->
+  <div class="stories-wrapper" id="storiesWrapper">
+    <div class="stories-scroll">
+      <div class="stories-track" id="storiesTrack"></div>
+    </div>
+  </div>
 </div>
 
 <div class="hero-gentle">
   <h2>Tu idea, <span>hecha pieza única</span></h2>
   <p>Vinilo · Sublimación · DTF · Láser Xtool · Artesanía menuda</p>
-</div>
-
-<div class="stories-scroll">
-  <div class="stories-track" id="storiesTrack"></div>
 </div>
 
 <div class="feed-container">
@@ -147,7 +252,7 @@
 
 <button id="fabCreateBtn" class="fab-create" style="display: none;">+</button>
 
-<!-- MODAL EDITAR -->
+<!-- MODALES (igual que antes) -->
 <div id="editModal" class="modal-overlay">
   <div class="modal-card">
     <h3>✏️ Editar pieza</h3>
@@ -156,7 +261,7 @@
     <input type="text" id="editName" placeholder="Nombre del producto">
     <input type="text" id="editPrice" placeholder="Precio (€)">
     <textarea id="editDescription" placeholder="Descripción (copywriting potente)" rows="3"></textarea>
-    <button class="btn-deepseek" onclick="improveDescription('edit')">✨ Mejorar descripción con IA (DeepSeek)</button>
+    <button class="btn-deepseek" id="improveEditBtn">✨ Mejorar descripción con IA</button>
     <input type="text" id="editIcon" placeholder="Icono (fallback)">
     <select id="editCategory">
       <option value="textil">👕 Camisetas y ropa</option>
@@ -171,7 +276,6 @@
   </div>
 </div>
 
-<!-- MODAL AÑADIR -->
 <div id="addModal" class="modal-overlay">
   <div class="modal-card">
     <h3>➕ Nueva creación</h3>
@@ -180,7 +284,7 @@
     <input type="text" id="addName" placeholder="Nombre del producto">
     <input type="text" id="addPrice" placeholder="Precio (€)">
     <textarea id="addDescription" placeholder="Descripción (copywriting potente)" rows="3"></textarea>
-    <button class="btn-deepseek" onclick="improveDescription('add')">✨ Mejorar descripción con IA (DeepSeek)</button>
+    <button class="btn-deepseek" id="improveAddBtn">✨ Mejorar descripción con IA</button>
     <input type="text" id="addIcon" placeholder="Icono (fallback)" value="fa-heart">
     <select id="addCategory">
       <option value="textil">👕 Camisetas y ropa</option>
@@ -202,7 +306,6 @@
 <script>
   const SUPABASE_URL = "https://nccggkkxezbrydeyzyko.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_1uOhbiY9pDQ4k4q0Lz7wpg_7c6ykx7p";
-  const DEEPSEEK_API_KEY = "sk-xxxxxxxxxxxxxxxxxxxxxxxx"; // <-- PON AQUÍ TU API KEY DE DEEPSEEK
   
   let supabaseClient = null;
   let products = [];
@@ -218,7 +321,29 @@
     window.history.replaceState({}, document.title, window.location.pathname);
   }
 
-  // FUNCIÓN PARA MEJORAR DESCRIPCIÓN CON DEEPSEEK
+  // ========== HEADER DINÁMICO AL SCROLL ==========
+  function initScrollHeader() {
+    const mainHeader = document.getElementById('mainHeader');
+    const storiesWrapper = document.getElementById('storiesWrapper');
+    let lastScroll = 0;
+    
+    window.addEventListener('scroll', () => {
+      const currentScroll = window.pageYOffset;
+      
+      if (currentScroll > 50) {
+        mainHeader.classList.add('small');
+        mainHeader.classList.remove('large');
+        storiesWrapper.classList.add('sticky-top');
+      } else {
+        mainHeader.classList.add('large');
+        mainHeader.classList.remove('small');
+        storiesWrapper.classList.remove('sticky-top');
+      }
+      lastScroll = currentScroll;
+    });
+  }
+
+  // ========== EDGE FUNCTION ==========
   async function improveDescription(mode) {
     const textareaId = mode === 'edit' ? 'editDescription' : 'addDescription';
     const currentText = document.getElementById(textareaId).value;
@@ -229,75 +354,53 @@
       return;
     }
     
-    const prompt = `Eres un experto en copywriting y marketing. Mejora la siguiente descripción de un producto artesano personalizable llamado "${productName}". 
+    const btn = document.getElementById(mode === 'edit' ? 'improveEditBtn' : 'improveAddBtn');
+    const originalText = btn.innerHTML;
     
-    Texto original: "${currentText || productName}"
-    
-    Reglas:
-    - Usa técnicas de marketing: emoción, escasez, beneficios, prueba social.
-    - Extensión: entre 80 y 150 palabras.
-    - Tono: cercano, auténtico, inspirador (como un artesano que habla con pasión).
-    - Incluye emojis relacionados (🎨, ✨, 💝, 🔥, 🎁).
-    - Termina con una llamada a la acción: "¿Te lo imaginas con tu toque personal? ¡Hablemos!".
-    - No inventes mentiras. Sé fiel al producto.
-    
-    Devuelve SOLO la descripción mejorada, sin explicaciones.`;
+    btn.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Generando...';
+    btn.disabled = true;
     
     try {
-      const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
-        method: "POST",
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      
+      if (!session) {
+        alert("❌ Debes iniciar sesión como gerente para usar esta función.");
+        return;
+      }
+      
+      const functionUrl = `${SUPABASE_URL}/functions/v1/improve-description`;
+      
+      const response = await fetch(functionUrl, {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${DEEPSEEK_API_KEY}`
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
         },
-        body: JSON.stringify({
-          model: "deepseek-chat",
-          messages: [{ role: "user", content: prompt }],
-          temperature: 0.7
+        body: JSON.stringify({ 
+          text: currentText, 
+          productName: productName 
         })
       });
+      
       const data = await response.json();
-      const improved = data.choices[0].message.content;
-      document.getElementById(textareaId).value = improved;
+      
+      if (!response.ok || data.error) {
+        throw new Error(data.error || `Error HTTP: ${response.status}`);
+      }
+      
+      document.getElementById(textareaId).value = data.improved;
       alert("✅ Descripción mejorada con IA");
+      
     } catch (err) {
-      console.error(err);
-      alert("Error con DeepSeek. Revisa tu API key.");
+      console.error("Error:", err);
+      alert("Error al mejorar la descripción: " + err.message);
+    } finally {
+      btn.innerHTML = originalText;
+      btn.disabled = false;
     }
   }
 
-  // FUNCIÓN PARA RENDERIZAR DESCRIPCIÓN CON "LEER MÁS"
-  function renderDescription(text) {
-    if (!text) return '';
-    const words = text.split(' ');
-    if (words.length <= 20) {
-      return `<p class="product-description">${escapeHtml(text)}</p>`;
-    }
-    const shortText = words.slice(0, 20).join(' ') + '...';
-    return `
-      <div class="product-description">
-        <span class="short-text">${escapeHtml(shortText)}</span>
-        <span class="full-text">${escapeHtml(text)}</span>
-        <button class="read-more-btn" onclick="toggleDescription(this)">Leer más</button>
-      </div>
-    `;
-  }
-
-  window.toggleDescription = function(btn) {
-    const container = btn.parentElement;
-    const short = container.querySelector('.short-text');
-    const full = container.querySelector('.full-text');
-    if (full.style.display === 'none' || !full.style.display) {
-      full.style.display = 'inline';
-      short.style.display = 'none';
-      btn.textContent = 'Leer menos';
-    } else {
-      full.style.display = 'none';
-      short.style.display = 'inline';
-      btn.textContent = 'Leer más';
-    }
-  };
-
+  // ========== CRUD ==========
   async function uploadImage(file, productId) {
     if (!file) return null;
     const fileExt = file.name.split('.').pop();
@@ -341,6 +444,7 @@
     renderFeed();
   }
 
+  // ========== RENDER ==========
   function renderStories() {
     const cats = [
       { id: 'todos', name: 'Todo', icon: 'fa-heart' },
@@ -358,6 +462,37 @@
   }
 
   window.filterByCategory = function(cat) { currentFilter = cat; renderFeed(); };
+
+  window.toggleDescription = function(btn) {
+    const container = btn.parentElement;
+    const short = container.querySelector('.short-text');
+    const full = container.querySelector('.full-text');
+    if (full.style.display === 'none' || !full.style.display) {
+      full.style.display = 'inline';
+      short.style.display = 'none';
+      btn.textContent = 'Leer menos';
+    } else {
+      full.style.display = 'none';
+      short.style.display = 'inline';
+      btn.textContent = 'Leer más';
+    }
+  };
+
+  function renderDescription(text) {
+    if (!text) return '';
+    const words = text.split(' ');
+    if (words.length <= 20) {
+      return `<div class="product-description">${escapeHtml(text)}</div>`;
+    }
+    const shortText = words.slice(0, 20).join(' ') + '...';
+    return `
+      <div class="product-description">
+        <span class="short-text">${escapeHtml(shortText)}</span>
+        <span class="full-text">${escapeHtml(text)}</span>
+        <button class="read-more-btn" onclick="toggleDescription(this)">Leer más</button>
+      </div>
+    `;
+  }
 
   function renderFeed() {
     const container = document.getElementById("feedContainer");
@@ -397,6 +532,7 @@
 
   function escapeHtml(str) { if (!str) return ""; return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
 
+  // ========== MODALES ==========
   function openEdit(prod) {
     currentEditingId = prod.id;
     document.getElementById("editName").value = prod.nombre_es || "";
@@ -476,6 +612,7 @@
   window.logout = async function() { await supabaseClient.auth.signOut(); window.location.href = window.location.pathname; };
   window.addLike = addLike;
 
+  // ========== UI ==========
   async function updateUI() {
     const authDiv = document.getElementById("authButtons");
     const fab = document.getElementById("fabCreateBtn");
@@ -488,12 +625,16 @@
     }
   }
 
+  // ========== INIT ==========
   async function init() {
     supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     await loadProducts();
     renderStories();
     await updateUI();
+    initScrollHeader();
     document.getElementById("fabCreateBtn").onclick = () => openAddModal();
+    document.getElementById("improveEditBtn").onclick = () => improveDescription('edit');
+    document.getElementById("improveAddBtn").onclick = () => improveDescription('add');
   }
 
   window.onclick = (e) => { if (e.target.classList.contains('modal-overlay')) e.target.style.display = "none"; };
