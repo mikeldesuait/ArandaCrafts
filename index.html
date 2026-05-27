@@ -130,14 +130,17 @@
   const SUPABASE_URL = "https://nccggkkxezbrydeyzyko.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_1uOhbiY9pDQ4k4q0Lz7wpg_7c6ykx7p";
   
-  let supabase, products = [], isAdmin = false, currentEditingId = null, currentFilter = "todos";
+  let supabaseClient = null;
+  let products = [];
+  let isAdmin = false;
+  let currentEditingId = null;
+  let currentFilter = "todos";
 
   // Detectar modo admin (por parámetro URL)
   const urlParams = new URLSearchParams(window.location.search);
   if (urlParams.get('admin') === 'true') {
     isAdmin = true;
     console.log("✅ Modo admin activado por URL");
-    // Limpiar URL
     window.history.replaceState({}, document.title, window.location.pathname);
   }
 
@@ -153,15 +156,15 @@
   ];
 
   async function seedEjemplos() {
-    const { count } = await supabase.from('productos').select('*', { count: 'exact', head: true });
+    const { count } = await supabaseClient.from('productos').select('*', { count: 'exact', head: true });
     if (count === 0) {
-      for (let ex of ejemplos) await supabase.from('productos').insert([{ ...ex, activo: true }]);
+      for (let ex of ejemplos) await supabaseClient.from('productos').insert([{ ...ex, activo: true }]);
       console.log("📦 Ejemplos insertados");
     }
   }
 
   async function loadProducts() {
-    const { data } = await supabase.from('productos').select('*').order('id', { ascending: false });
+    const { data } = await supabaseClient.from('productos').select('*').order('id', { ascending: false });
     products = data || [];
     renderFeed();
     console.log(`📦 ${products.length} productos cargados`);
@@ -169,18 +172,18 @@
 
   async function deleteProduct(id) {
     if (confirm("¿Eliminar esta creación?")) {
-      await supabase.from('productos').delete().eq('id', id);
+      await supabaseClient.from('productos').delete().eq('id', id);
       loadProducts();
     }
   }
 
   async function updateProduct(id, updates) {
-    await supabase.from('productos').update(updates).eq('id', id);
+    await supabaseClient.from('productos').update(updates).eq('id', id);
     loadProducts();
   }
 
   async function addProduct(data) {
-    await supabase.from('productos').insert([{ ...data, activo: true }]);
+    await supabaseClient.from('productos').insert([{ ...data, activo: true }]);
     loadProducts();
   }
 
@@ -269,7 +272,7 @@
   }
 
   async function logout() {
-    await supabase.auth.signOut();
+    await supabaseClient.auth.signOut();
     window.location.href = window.location.pathname;
   }
 
@@ -289,8 +292,8 @@
   }
 
   async function init() {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     console.log("🚀 Iniciando app...");
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     await seedEjemplos();
     await loadProducts();
     renderStories();
