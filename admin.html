@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Acceso gerente | Aranda Crafts</title>
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Quicksand', sans-serif;
+      background: linear-gradient(145deg, #fef9f2 0%, #ffede1 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .login-card {
+      background: white;
+      border-radius: 48px;
+      padding: 40px 32px;
+      max-width: 400px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.05);
+      border: 1px solid #ffe1c4;
+    }
+    .login-card h1 {
+      font-size: 2rem;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #d47b3a, #b95f2a);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+    .login-card p {
+      color: #b78f6e;
+      margin-bottom: 32px;
+      font-size: 0.9rem;
+    }
+    .login-card input {
+      width: 100%;
+      padding: 16px;
+      margin-bottom: 16px;
+      border-radius: 60px;
+      border: 1px solid #ffe1c4;
+      background: #fefaf5;
+      font-family: 'Quicksand', sans-serif;
+      font-size: 1rem;
+    }
+    .login-card button {
+      width: 100%;
+      background: #d47b3a;
+      color: white;
+      border: none;
+      padding: 16px;
+      border-radius: 60px;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .login-card button:hover { background: #b95f2a; transform: scale(1.02); }
+    .error { color: #c16e3a; margin-top: 16px; font-size: 0.8rem; }
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      color: #b78f6e;
+      text-decoration: none;
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+<body>
+<div class="login-card">
+  <h1>🌸 Aranda Crafts</h1>
+  <p>acceso para el equipo</p>
+  <input type="email" id="email" placeholder="Email" value="aranda.crafts@gmail.com">
+  <input type="password" id="password" placeholder="Contraseña">
+  <button onclick="login()">Entrar al panel</button>
+  <div id="errorMsg" class="error"></div>
+  <a href="/" class="back-link">← Volver a la tienda</a>
+</div>
+
+<script>
+  const SUPABASE_URL = "https://nccggkkxezbrydeyzyko.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_1uOhbiY9pDQ4k4q0Lz7wpg_7c6ykx7p";
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  async function login() {
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+    const errorDiv = document.getElementById("errorMsg");
+    
+    // Verificar credenciales de Tati
+    if (email === "aranda.crafts@gmail.com" && password === "aranda2025") {
+      // Redirigir a la página principal con modo admin activado
+      window.location.href = "/?admin=true";
+    } else {
+      errorDiv.innerText = "❌ Acceso solo para el equipo Aranda";
+    }
+  }
+</script>
+</body>
+</html>
