@@ -98,20 +98,17 @@
 </div>
 
 <script>
-  // Configuración de Supabase (solo la URL y clave anónima, sin credenciales de usuario)
   const SUPABASE_URL = "https://nccggkkxezbrydeyzyko.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_1uOhbiY9pDQ4k4q0Lz7wpg_7c6ykx7p";
   
   let supabase;
 
-  // Inicializar Supabase
   async function initSupabase() {
     supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     
-    // Verificar si ya hay una sesión activa
+    // Verificar si ya hay sesión activa
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
-      // Verificar si el usuario tiene rol de gerente
       const { data: perfil } = await supabase
         .from('perfiles')
         .select('rol')
@@ -119,7 +116,6 @@
         .single();
       
       if (perfil?.rol === 'gerente') {
-        // Redirigir directamente al modo admin
         window.location.href = "/?admin=true";
       }
     }
@@ -131,21 +127,17 @@
     const errorDiv = document.getElementById("errorMsg");
     const loginBtn = document.getElementById("loginBtn");
     
-    // Limpiar mensaje anterior
     errorDiv.innerHTML = "";
     
-    // Validar campos
     if (!email || !password) {
       errorDiv.innerText = "❌ Completa ambos campos";
       return;
     }
     
-    // Mostrar loading
     loginBtn.disabled = true;
     loginBtn.innerHTML = '<span class="spinner"></span> Verificando...';
     
     try {
-      // 1. Autenticar con Supabase (sin comparaciones locales)
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email,
         password: password
@@ -153,7 +145,6 @@
       
       if (error) throw error;
       
-      // 2. Verificar que el usuario tiene rol 'gerente'
       const { data: perfil, error: perfilError } = await supabase
         .from('perfiles')
         .select('rol')
@@ -162,26 +153,22 @@
       
       if (perfilError) throw new Error("Error al verificar permisos");
       
-      // 3. Si no es gerente, cerrar sesión y denegar acceso
       if (perfil?.rol !== 'gerente') {
         await supabase.auth.signOut();
-        throw new Error("No tienes permisos de administración");
+        throw new Error("No tienes permisos");
       }
       
-      // 4. Todo correcto: redirigir con modo admin
+      // Redirigir con el parámetro admin=true
       window.location.href = "/?admin=true";
       
     } catch (err) {
-      console.error("Login error:", err);
-      // Mensaje genérico de error (no revelamos si existe el usuario o no)
-      errorDiv.innerText = "❌ Email o contraseña incorrectos, o no tienes permisos";
-      // Restaurar botón
+      console.error(err);
+      errorDiv.innerText = "❌ Email o contraseña incorrectos";
       loginBtn.disabled = false;
       loginBtn.innerHTML = "Entrar al panel";
     }
   }
   
-  // Inicializar
   initSupabase();
 </script>
 </body>
