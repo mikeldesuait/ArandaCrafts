@@ -8,58 +8,98 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Quicksand', sans-serif; background: #fef9f2; color: #2d2a24; scroll-behavior: smooth; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Quicksand', sans-serif; background: #fef9f2; color: #2d2a24; scroll-behavior: smooth; }
 
-    .soft-header {
-      position: sticky; top: 0; background: rgba(255, 250, 240, 0.96); backdrop-filter: blur(12px);
-      padding: 16px 20px; display: flex; flex-direction: column; align-items: center;
-      border-bottom: 1px solid #ffe1c4; z-index: 100;
-    }
-    .logo-area h1 { font-size: 2rem; font-weight: 800; background: linear-gradient(135deg, #d47b3a, #b95f2a); -webkit-background-clip: text; background-clip: text; color: transparent; }
-    .logo-area p { font-size: 0.7rem; color: #b78f6e; letter-spacing: 1.5px; }
-    .header-actions { display: flex; gap: 12px; justify-content: center; margin-top: 6px; }
-    .icon-soft { width: 42px; height: 42px; background: #fff1e6; border-radius: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: none; color: #c16e3a; font-size: 1.2rem; transition: all 0.2s; }
-    .icon-soft:hover { background: #c16e3a; color: white; }
+  .soft-header {
+    position: sticky; top: 0; background: rgba(255, 250, 240, 0.96); backdrop-filter: blur(12px);
+    padding: 16px 20px; display: flex; flex-direction: column; align-items: center;
+    border-bottom: 1px solid #ffe1c4; z-index: 100;
+  }
+  .logo-area h1 { font-size: 2rem; font-weight: 800; background: linear-gradient(135deg, #d47b3a, #b95f2a); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .logo-area p { font-size: 0.7rem; color: #b78f6e; letter-spacing: 1.5px; }
+  .header-actions { display: flex; gap: 12px; justify-content: center; margin-top: 6px; }
+  .icon-soft { width: 42px; height: 42px; background: #fff1e6; border-radius: 30px; display: flex; align-items: center; justify-content: center; cursor: pointer; border: none; color: #c16e3a; font-size: 1.2rem; transition: all 0.2s; }
+  .icon-soft:hover { background: #c16e3a; color: white; }
 
-    .hero-gentle { padding: 40px 20px; text-align: center; background: linear-gradient(145deg, #fff5eb 0%, #ffede1 100%); }
-    .hero-gentle h2 { font-size: 1.8rem; font-weight: 700; color: #3b2c21; }
-    .hero-gentle span { color: #d47b3a; }
-    .hero-gentle p { margin-top: 12px; max-width: 320px; margin-left: auto; margin-right: auto; color: #8f735b; }
+  .hero-gentle { padding: 40px 20px; text-align: center; background: linear-gradient(145deg, #fff5eb 0%, #ffede1 100%); }
+  .hero-gentle h2 { font-size: 1.8rem; font-weight: 700; color: #3b2c21; }
+  .hero-gentle span { color: #d47b3a; }
+  .hero-gentle p { margin-top: 12px; max-width: 320px; margin-left: auto; margin-right: auto; color: #8f735b; }
 
-    .stories-scroll { overflow-x: auto; white-space: nowrap; padding: 20px 16px; scrollbar-width: thin; }
-    .stories-track { display: inline-flex; gap: 20px; }
-    .story-circle { display: inline-flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; }
-    .ring { width: 72px; height: 72px; background: #ffe1c4; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
-    .ring i { font-size: 2rem; color: #c16e3a; }
-    .story-label { font-size: 0.7rem; font-weight: 600; color: #6b4c30; }
+  .stories-scroll { overflow-x: auto; white-space: nowrap; padding: 20px 16px; scrollbar-width: thin; }
+  .stories-track { display: inline-flex; gap: 20px; }
+  .story-circle { display: inline-flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; }
+  .ring { width: 72px; height: 72px; background: #ffe1c4; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+  .ring i { font-size: 2rem; color: #c16e3a; }
+  .story-label { font-size: 0.7rem; font-weight: 600; color: #6b4c30; }
 
-    .feed-container { max-width: 550px; margin: 0 auto; padding: 16px; }
-    .product-card { background: white; border-radius: 32px; margin-bottom: 24px; overflow: hidden; box-shadow: 0 6px 18px rgba(0,0,0,0.03); border: 1px solid #ffe1c4; transition: all 0.2s; }
-    .product-card.editable { border: 2px solid #d47b3a; cursor: pointer; }
-    .card-img { width: 100%; aspect-ratio: 1/1; background: #fff8f0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-    .card-img img { width: 100%; height: 100%; object-fit: cover; }
-    .card-img i { font-size: 3.5rem; color: #dc9a6e; }
-    .card-info { padding: 18px; }
-    .product-name { font-weight: 700; font-size: 1.1rem; }
-    .product-price { color: #c16e3a; font-weight: 800; margin: 8px 0; }
-    .badge-craft { background: #fff1e6; color: #c16e3a; display: inline-block; padding: 4px 12px; border-radius: 40px; font-size: 0.7rem; margin: 8px 0; }
-    .btn-personalizar { background: #d47b3a; color: white; border: none; width: 100%; padding: 12px; border-radius: 40px; font-weight: 700; font-family: 'Quicksand', sans-serif; margin-top: 12px; cursor: pointer; }
+  .feed-container { 
+    max-width: 1200px; 
+    margin: 0 auto; 
+    padding: 16px; 
+  }
 
-    .fab-create { position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; background: #d47b3a; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.6rem; box-shadow: 0 6px 14px rgba(0,0,0,0.1); cursor: pointer; border: none; z-index: 90; transition: all 0.2s; }
-    .fab-create:hover { transform: scale(1.05); background: #b95f2a; }
+  .products-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+    justify-items: center;
+    align-items: start;
+  }
 
-    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); justify-content: center; align-items: center; z-index: 200; padding: 20px; }
-    .modal-card { background: white; border-radius: 36px; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 28px; border: 1px solid #ffe1c4; }
-    .modal-card h3 { margin-bottom: 20px; color: #b95f2a; }
-    .modal-card input, .modal-card select { width: 100%; padding: 14px; margin-bottom: 16px; border-radius: 30px; border: 1px solid #ffe1c4; background: #fefaf5; font-family: 'Quicksand', sans-serif; }
-    .img-preview { width: 100%; aspect-ratio: 1/1; background: #f5efe8; border-radius: 20px; margin-bottom: 16px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-    .img-preview img { width: 100%; height: 100%; object-fit: cover; }
-    .img-preview i { font-size: 2rem; color: #c16e3a; }
-    .btn-primary { background: #d47b3a; color: white; border: none; padding: 12px 24px; border-radius: 40px; font-weight: 600; cursor: pointer; }
-    .btn-secondary { background: #efe3d8; color: #5e3e26; border: none; padding: 12px 24px; border-radius: 40px; cursor: pointer; }
-    footer { text-align: center; padding: 30px; color: #cbad93; font-size: 0.7rem; border-top: 1px solid #ffe1c4; }
-  </style>
+  .product-card {
+    background: white;
+    border-radius: 32px;
+    overflow: hidden;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.03);
+    border: 1px solid #ffe1c4;
+    transition: all 0.2s;
+    width: 100%;
+    max-width: 350px;
+  }
+  .product-card.editable { border: 2px solid #d47b3a; cursor: pointer; }
+  .card-img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background: #fff8f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .card-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .card-img i {
+    font-size: 3.5rem;
+    color: #dc9a6e;
+    display: block;
+    margin: 0 auto;
+  }
+  .card-info { padding: 18px; text-align: left; }
+  .product-name { font-weight: 700; font-size: 1.1rem; }
+  .product-price { color: #c16e3a; font-weight: 800; margin: 8px 0; }
+  .badge-craft { background: #fff1e6; color: #c16e3a; display: inline-block; padding: 4px 12px; border-radius: 40px; font-size: 0.7rem; margin: 8px 0; }
+  .btn-personalizar { background: #d47b3a; color: white; border: none; width: 100%; padding: 12px; border-radius: 40px; font-weight: 700; font-family: 'Quicksand', sans-serif; margin-top: 12px; cursor: pointer; }
+
+  .fab-create { position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px; background: #d47b3a; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 1.6rem; box-shadow: 0 6px 14px rgba(0,0,0,0.1); cursor: pointer; border: none; z-index: 90; transition: all 0.2s; }
+  .fab-create:hover { transform: scale(1.05); background: #b95f2a; }
+
+  .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); justify-content: center; align-items: center; z-index: 200; padding: 20px; }
+  .modal-card { background: white; border-radius: 36px; max-width: 500px; width: 100%; max-height: 90vh; overflow-y: auto; padding: 28px; border: 1px solid #ffe1c4; }
+  .modal-card h3 { margin-bottom: 20px; color: #b95f2a; }
+  .modal-card input, .modal-card select { width: 100%; padding: 14px; margin-bottom: 16px; border-radius: 30px; border: 1px solid #ffe1c4; background: #fefaf5; font-family: 'Quicksand', sans-serif; }
+  .img-preview { width: 100%; aspect-ratio: 1/1; background: #f5efe8; border-radius: 20px; margin-bottom: 16px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .img-preview img { width: 100%; height: 100%; object-fit: cover; }
+  .img-preview i { font-size: 2rem; color: #c16e3a; }
+  .btn-primary { background: #d47b3a; color: white; border: none; padding: 12px 24px; border-radius: 40px; font-weight: 600; cursor: pointer; }
+  .btn-secondary { background: #efe3d8; color: #5e3e26; border: none; padding: 12px 24px; border-radius: 40px; cursor: pointer; }
+  footer { text-align: center; padding: 30px; color: #cbad93; font-size: 0.7rem; border-top: 1px solid #ffe1c4; }
+</style>
 </head>
 <body>
 
