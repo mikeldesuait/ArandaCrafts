@@ -111,7 +111,7 @@
     <select id="addCategory">
       <option value="textil">👕 Camisetas y ropa</option>
       <option value="sublimacion">☕ Tazas / Botellas / Copas</option>
-      <option value="artesania">🔑 Llaveros / Marcapáginas</option>
+      <option value="artesania">🔑 Llaveros / Marcadores</option>
       <option value="laser">⚡ Grabado láser Xtool</option>
     </select>
     <div style="display:flex; gap:12px; justify-content:flex-end;">
@@ -126,24 +126,34 @@
 </footer>
 
 <script>
-  // Configuración
+  // ==========================================
+  //  CONFIGURACIÓN
+  // ==========================================
   const SUPABASE_URL = "https://nccggkkxezbrydeyzyko.supabase.co";
   const SUPABASE_ANON_KEY = "sb_publishable_1uOhbiY9pDQ4k4q0Lz7wpg_7c6ykx7p";
   
   let supabaseClient = null;
   let products = [];
-  let isAdmin = false;
   let currentEditingId = null;
   let currentFilter = "todos";
-
-  // Detectar modo admin (por parámetro URL)
+  
+  // 🔥 FORZAR MODO ADMIN SI VIENE DE admin.html
   const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get('admin') === 'true') {
-    isAdmin = true;
-    console.log("✅ Modo admin activado por URL");
+  const IS_ADMIN_MODE = (urlParams.get('admin') === 'true');
+  
+  console.log("🔍 Modo admin detectado:", IS_ADMIN_MODE);
+  
+  // Variables globales para el modo admin
+  window.isAdmin = IS_ADMIN_MODE;
+  
+  // Si es admin, limpiar URL para que no se vea feo
+  if (IS_ADMIN_MODE) {
     window.history.replaceState({}, document.title, window.location.pathname);
   }
 
+  // ==========================================
+  //  EJEMPLOS INICIALES
+  // ==========================================
   const ejemplos = [
     { nombre_es: "Camiseta 'Arte Flow'", precio: 22.90, icono: "fa-tshirt", categoria: "textil" },
     { nombre_es: "Taza 'Brillo Creativo'", precio: 14.50, icono: "fa-mug-hot", categoria: "sublimacion" },
@@ -155,6 +165,9 @@
     { nombre_es: "Pack 2 tazas 'Amistad'", precio: 26.90, icono: "fa-mug-hot", categoria: "sublimacion" }
   ];
 
+  // ==========================================
+  //  SUPABASE CRUD
+  // ==========================================
   async function seedEjemplos() {
     const { count } = await supabaseClient.from('productos').select('*', { count: 'exact', head: true });
     if (count === 0) {
@@ -187,6 +200,9 @@
     loadProducts();
   }
 
+  // ==========================================
+  //  RENDERIZADO
+  // ==========================================
   function renderStories() {
     const cats = [
       { id: 'todos', name: 'Todo', icon: 'fa-heart' },
@@ -203,20 +219,23 @@
     `).join('');
   }
 
-  function filterByCategory(cat) { currentFilter = cat; renderFeed(); }
+  window.filterByCategory = function(cat) { 
+    currentFilter = cat; 
+    renderFeed(); 
+  };
 
   function renderFeed() {
     const container = document.getElementById("feedContainer");
     let filtered = currentFilter === "todos" ? products : products.filter(p => p.categoria === currentFilter);
     if (!filtered.length) {
-      container.innerHTML = `<div style="text-align:center; padding:40px;">🌸 Aún no hay productos. ${isAdmin ? 'Toca el botón + para empezar' : 'Vuelve pronto'}</div>`;
+      container.innerHTML = `<div style="text-align:center; padding:40px;">🌸 Aún no hay productos. ${window.isAdmin ? 'Toca el botón + para empezar' : 'Vuelve pronto'}</div>`;
       return;
     }
     container.innerHTML = "";
     filtered.forEach(p => {
       const card = document.createElement("div");
-      card.className = "product-card" + (isAdmin ? " editable" : "");
-      if (isAdmin) card.onclick = () => openEdit(p);
+      card.className = "product-card" + (window.isAdmin ? " editable" : "");
+      if (window.isAdmin) card.onclick = () => openEdit(p);
       const iconMap = { textil: 'fa-tshirt', sublimacion: 'fa-mug-hot', artesania: 'fa-key', laser: 'fa-crown' };
       const icono = p.icono || iconMap[p.categoria] || 'fa-star';
       card.innerHTML = `
@@ -226,7 +245,7 @@
           <div class="product-price">${p.precio} €</div>
           <div class="badge-craft"><i class="fas fa-hands"></i> hecho a mano</div>
           <button class="btn-personalizar" onclick="event.stopPropagation(); alert('✨ Personalizar ${escapeHtml(p.nombre_es)} · ${p.precio}€\\n📧 Escríbenos para empezar')">Quiero personalizar ✨</button>
-          ${isAdmin ? `<button class="btn-personalizar" style="background:#c96f3a; margin-top:8px;" onclick="event.stopPropagation(); deleteProduct(${p.id})"><i class="fas fa-trash-alt"></i> Eliminar</button>` : ''}
+          ${window.isAdmin ? `<button class="btn-personalizar" style="background:#c96f3a; margin-top:8px;" onclick="event.stopPropagation(); deleteProduct(${p.id})"><i class="fas fa-trash-alt"></i> Eliminar</button>` : ''}
         </div>
       `;
       container.appendChild(card);
@@ -235,6 +254,9 @@
 
   function escapeHtml(str) { if (!str) return ""; return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
 
+  // ==========================================
+  //  MODALES
+  // ==========================================
   function openEdit(prod) {
     currentEditingId = prod.id;
     document.getElementById("editName").value = prod.nombre_es || "";
@@ -244,7 +266,7 @@
     document.getElementById("editModal").style.display = "flex";
   }
 
-  async function saveCurrentProduct() {
+  window.saveCurrentProduct = async function() {
     await updateProduct(currentEditingId, {
       nombre_es: document.getElementById("editName").value,
       precio: parseFloat(document.getElementById("editPrice").value),
@@ -252,14 +274,14 @@
       categoria: document.getElementById("editCategory").value
     });
     closeModal();
-  }
+  };
 
-  function closeModal() { document.getElementById("editModal").style.display = "none"; }
+  window.closeModal = function() { document.getElementById("editModal").style.display = "none"; };
+  
+  window.openAddModal = function() { document.getElementById("addModal").style.display = "flex"; };
+  window.closeAddModal = function() { document.getElementById("addModal").style.display = "none"; };
 
-  document.getElementById("fabCreateBtn").onclick = () => document.getElementById("addModal").style.display = "flex";
-  function closeAddModal() { document.getElementById("addModal").style.display = "none"; }
-
-  async function createNewProduct() {
+  window.createNewProduct = async function() {
     await addProduct({
       nombre_es: document.getElementById("addName").value,
       precio: parseFloat(document.getElementById("addPrice").value),
@@ -269,21 +291,27 @@
     closeAddModal();
     document.getElementById("addName").value = "";
     document.getElementById("addPrice").value = "";
-  }
+  };
 
-  async function logout() {
-    await supabaseClient.auth.signOut();
+  // ==========================================
+  //  LOGOUT
+  // ==========================================
+  window.logout = async function() {
+    if (supabaseClient) await supabaseClient.auth.signOut();
     window.location.href = window.location.pathname;
-  }
+  };
 
+  // ==========================================
+  //  UI (admin o cliente)
+  // ==========================================
   async function updateUI() {
     const authDiv = document.getElementById("authButtons");
     const fab = document.getElementById("fabCreateBtn");
     
-    if (isAdmin) {
+    if (window.isAdmin) {
       authDiv.innerHTML = `<div style="display:flex; gap:8px;"><span style="background:#d47b3a; padding:5px 15px; border-radius:40px; color:white; font-weight:600;">🌸 Tati</span><button class="icon-soft" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div>`;
       fab.style.display = "flex";
-      console.log("👑 UI en modo admin");
+      console.log("👑 UI en modo ADMIN - Botón + visible");
     } else {
       authDiv.innerHTML = `<a href="admin.html" class="icon-soft"><i class="fas fa-user-circle"></i></a>`;
       fab.style.display = "none";
@@ -291,6 +319,9 @@
     }
   }
 
+  // ==========================================
+  //  INICIALIZACIÓN
+  // ==========================================
   async function init() {
     console.log("🚀 Iniciando app...");
     supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -298,9 +329,15 @@
     await loadProducts();
     renderStories();
     await updateUI();
+    
+    // Asignar evento al botón flotante
+    document.getElementById("fabCreateBtn").onclick = () => openAddModal();
   }
 
-  window.onclick = (e) => { if (e.target.classList.contains('modal-overlay')) e.target.style.display = "none"; };
+  window.onclick = (e) => { 
+    if (e.target.classList.contains('modal-overlay')) e.target.style.display = "none"; 
+  };
+  
   init();
 </script>
 </body>
