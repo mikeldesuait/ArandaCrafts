@@ -131,12 +131,28 @@
 
   let supabase, products = [], isAdmin = false, currentEditingId = null, currentFilter = "todos";
 
-  // 🔐 DETECTAR MODO ADMIN (por parámetro ?admin=true)
-  const urlParams = new URLSearchParams(window.location.search);
-  if (urlParams.get('admin') === 'true') {
-    isAdmin = true;
-    // Limpiar la URL para que quede bonita
-    window.history.replaceState({}, document.title, window.location.pathname);
+  // Detectar modo admin (por parámetro URL o por sesión de Supabase)
+  async function checkAdminMode() {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('admin') === 'true') {
+      isAdmin = true;
+      window.history.replaceState({}, document.title, window.location.pathname);
+      return;
+    }
+    
+    // Verificar si hay sesión activa en Supabase
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session) {
+      const { data: perfil } = await supabase
+        .from('perfiles')
+        .select('rol')
+        .eq('id', session.user.id)
+        .single();
+      
+      if (perfil?.rol === 'gerente') {
+        isAdmin = true;
+      }
+    }
   }
 
   const ejemplos = [
@@ -264,14 +280,15 @@
     document.getElementById("addPrice").value = "";
   }
 
-  function logout() {
-    // Redirigir a la página pública (sin admin)
+  async function logout() {
+    await supabase.auth.signOut();
     window.location.href = window.location.pathname;
   }
 
-  function updateUI() {
+  async function updateUI() {
     const authDiv = document.getElementById("authButtons");
     const fab = document.getElementById("fabCreateBtn");
+    
     if (isAdmin) {
       authDiv.innerHTML = `<div style="display:flex; gap:8px;"><span style="background:#d47b3a; padding:5px 15px; border-radius:40px; color:white; font-weight:600;">🌸 Tati</span><button class="icon-soft" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div>`;
       fab.style.display = "flex";
@@ -283,10 +300,11 @@
 
   async function init() {
     supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    await checkAdminMode();
     await seedEjemplos();
     await loadProducts();
     renderStories();
-    updateUI();
+    await updateUI();
   }
 
   window.onclick = (e) => { if (e.target.classList.contains('modal-overlay')) e.target.style.display = "none"; };
