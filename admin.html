@@ -92,9 +92,9 @@
   <p>acceso para el equipo</p>
   <input type="email" id="email" placeholder="Email" autocomplete="email">
   <input type="password" id="password" placeholder="Contraseña" autocomplete="current-password">
-  <button id="loginBtn" onclick="login()">Entrar al panel</button>
+  <button id="loginBtn">Entrar al panel</button>
   <div id="errorMsg" class="error"></div>
-  <a href="/" class="back-link">← Volver a la tienda</a>
+  <a href="./" class="back-link">← Volver a la tienda</a>
 </div>
 
 <script>
@@ -106,7 +106,7 @@
   async function initSupabase() {
     supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     
-    // Verificar si ya hay sesión activa
+    // Verificar sesión activa
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
       const { data: perfil } = await supabase
@@ -116,7 +116,8 @@
         .single();
       
       if (perfil?.rol === 'gerente') {
-        window.location.href = window.location.pathname.replace("/admin.html", "") + "?admin=true";
+        const basePath = window.location.pathname.replace("/admin.html", "");
+        window.location.href = basePath + "?admin=true";
       }
     }
   }
@@ -158,8 +159,8 @@
         throw new Error("No tienes permisos");
       }
       
-      // Redirigir con el parámetro admin=true
-      window.location.href = "/?admin=true";
+      const basePath = window.location.pathname.replace("/admin.html", "");
+      window.location.href = basePath + "?admin=true";
       
     } catch (err) {
       console.error(err);
@@ -169,7 +170,11 @@
     }
   }
   
-  initSupabase();
+  // Asignar evento después de que el DOM esté listo
+  document.addEventListener("DOMContentLoaded", () => {
+    initSupabase();
+    document.getElementById("loginBtn").addEventListener("click", login);
+  });
 </script>
 </body>
 </html>
