@@ -151,12 +151,9 @@
   let currentEditingImageFile = null;
   let currentFilter = "todos";
   
-  // 🔥 FORZAR MODO ADMIN SI VIENE DE admin.html
+  // Modo admin
   const urlParams = new URLSearchParams(window.location.search);
   const IS_ADMIN_MODE = (urlParams.get('admin') === 'true');
-  
-  console.log("🔍 Modo admin detectado:", IS_ADMIN_MODE);
-  
   window.isAdmin = IS_ADMIN_MODE;
   
   if (IS_ADMIN_MODE) {
@@ -164,7 +161,7 @@
   }
 
   // ==========================================
-  //  EJEMPLOS INICIALES
+  //  EJEMPLOS
   // ==========================================
   const ejemplos = [
     { nombre_es: "Camiseta 'Arte Flow'", precio: 22.90, icono: "fa-tshirt", categoria: "textil" },
@@ -181,13 +178,44 @@
   //  SUBIR IMAGEN A SUPABASE STORAGE
   // ==========================================
   async function uploadImage(file, productId) {
-    if (!file) return null;
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${productId}_${Date.now()}.${fileExt}`;
-    const { error } = await supabaseClient.storage.from('productos').upload(fileName, file);
-    if (error) throw error;
-    const { data } = supabaseClient.storage.from('productos').getPublicUrl(fileName);
-    return data.publicUrl;
+    if (!file) {
+      console.log("No hay archivo para subir");
+      return null;
+    }
+    
+    console.log("📤 Iniciando subida de imagen:", file.name, file.size, file.type);
+    
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${productId}_${Date.now()}.${fileExt}`;
+      
+      const { data, error } = await supabaseClient.storage
+        .from('productos')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: true
+        });
+      
+      if (error) {
+        console.error("❌ Error de Supabase al subir:", error);
+        alert("Error de Supabase: " + error.message);
+        return null;
+      }
+      
+      console.log("✅ Archivo subido correctamente:", data);
+      
+      const { data: urlData } = supabaseClient.storage
+        .from('productos')
+        .getPublicUrl(fileName);
+      
+      console.log("📷 URL pública generada:", urlData.publicUrl);
+      return urlData.publicUrl;
+      
+    } catch (err) {
+      console.error("❌ Excepción en uploadImage:", err);
+      alert("Error inesperado: " + err.message);
+      return null;
+    }
   }
 
   // ==========================================
@@ -216,17 +244,22 @@
   }
 
   async function updateProduct(id, updates) {
-    await supabaseClient.from('productos').update(updates).eq('id', id);
+    const { error } = await supabaseClient.from('productos').update(updates).eq('id', id);
+    if (error) console.error("Error al actualizar:", error);
     loadProducts();
   }
 
   async function addProduct(data) {
-    const { data: newProduct } = await supabaseClient.from('productos').insert([{ ...data, activo: true }]).select();
+    const { data: newProduct, error } = await supabaseClient.from('productos').insert([{ ...data, activo: true }]).select();
+    if (error) {
+      console.error("Error al crear producto:", error);
+      throw error;
+    }
     return newProduct[0];
   }
 
   // ==========================================
-  //  RENDERIZADO
+  //  RENDERIZADO (igual que antes)
   // ==========================================
   function renderStories() {
     const cats = [
@@ -244,10 +277,7 @@
     `).join('');
   }
 
-  window.filterByCategory = function(cat) { 
-    currentFilter = cat; 
-    renderFeed(); 
-  };
+  window.filterByCategory = function(cat) { currentFilter = cat; renderFeed(); };
 
   function renderFeed() {
     const container = document.getElementById("feedContainer");
@@ -282,7 +312,7 @@
   function escapeHtml(str) { if (!str) return ""; return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m])); }
 
   // ==========================================
-  //  MODALES CON IMAGEN
+  //  MODALES CON IMAGEN (con logs)
   // ==========================================
   function openEdit(prod) {
     currentEditingId = prod.id;
@@ -341,7 +371,6 @@
     currentEditingImageFile = null;
   };
 
-  // Añadir producto con imagen
   window.openAddModal = function() { 
     document.getElementById("addModal").style.display = "flex"; 
   };
@@ -369,20 +398,41 @@
     const category = document.getElementById("addCategory").value;
     const imageFile = document.getElementById("addImageFile").files[0];
     
+    console.log("📝 Creando producto:", { name, price, icon, category, hasImage: !!imageFile });
+    
     if (!name || isNaN(price)) { alert("Completa nombre y precio"); return; }
     
-    // Crear producto sin imagen primero
-    const newProduct = await addProduct({ nombre_es: name, precio: price, icono: icon, categoria: category });
-    
-    // Si hay imagen, subirla y actualizar
-    if (imageFile && newProduct) {
-      const imagenUrl = await uploadImage(imageFile, newProduct.id);
-      await updateProduct(newProduct.id, { imagen_url: imagenUrl });
+    try {
+      const newProduct = await addProduct({ 
+        nombre_es: name, 
+        precio: price, 
+        icono: icon, 
+        categoria: category 
+      });
+      
+      console.log("✅ Producto creado, ID:", newProduct.id);
+      
+      if (imageFile && newProduct) {
+        console.log("📸 Subiendo imagen...");
+        const imagenUrl = await uploadImage(imageFile, newProduct.id);
+        if (imagenUrl) {
+          await updateProduct(newProduct.id, { imagen_url: imagenUrl });
+          console.log("✅ Imagen asignada al producto:", imagenUrl);
+        }
+      }
+      
+      closeAddModal();
+      document.getElementById("addName").value = "";
+      document.getElementById("addPrice").value = "";
+      document.getElementById("addImageFile").value = "";
+      document.getElementById("addImagePreview").innerHTML = `<i class="fas fa-image"></i>`;
+      await loadProducts();
+      alert("✅ Producto creado correctamente");
+      
+    } catch (err) {
+      console.error("❌ Error creando producto:", err);
+      alert("Error al crear producto: " + (err.message || "Desconocido"));
     }
-    
-    closeAddModal();
-    document.getElementById("addName").value = "";
-    document.getElementById("addPrice").value = "";
   };
 
   // ==========================================
@@ -394,7 +444,7 @@
   };
 
   // ==========================================
-  //  UI (admin o cliente)
+  //  UI
   // ==========================================
   async function updateUI() {
     const authDiv = document.getElementById("authButtons");
@@ -403,7 +453,7 @@
     if (window.isAdmin) {
       authDiv.innerHTML = `<div style="display:flex; gap:8px;"><span style="background:#d47b3a; padding:5px 15px; border-radius:40px; color:white; font-weight:600;">🌸 Tati</span><button class="icon-soft" onclick="logout()"><i class="fas fa-sign-out-alt"></i></button></div>`;
       fab.style.display = "flex";
-      console.log("👑 UI en modo ADMIN - Botón + visible");
+      console.log("👑 UI en modo ADMIN");
     } else {
       authDiv.innerHTML = `<a href="admin.html" class="icon-soft"><i class="fas fa-user-circle"></i></a>`;
       fab.style.display = "none";
